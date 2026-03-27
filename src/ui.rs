@@ -37,10 +37,10 @@ impl UiState {
 
     pub fn draw(&self) {
         match self.current_view {
-            View::Menu => draw_menu(),
-            View::LevelSelect => draw_level_select(self.selected_level),
-            View::InGame => draw_ingame_ui(),
-            View::GameOver => draw_game_over(),
+            View::Menu => draw_menu(self.font.as_ref()),
+            View::LevelSelect => draw_level_select(self.font.as_ref(), self.selected_level),
+            View::InGame => draw_ingame_ui(self.font.as_ref()),
+            View::GameOver => draw_game_over(self.font.as_ref()),
         }
     }
 
@@ -81,35 +81,140 @@ impl UiState {
     }
 }
 
-fn draw_menu() {
+pub fn draw_menu(main_font: Option<&Font>) {
     clear_background(BLACK);
 
-    draw_text("Trail of Hunger", 100.0, 100.0, 40.0, WHITE);
-    draw_text("Press ENTER to start", 100.0, 160.0, 24.0, GRAY);
+    draw_text_ex(
+        "Trail of Hunger",
+        100.0,
+        100.0,
+        TextParams {
+            font: main_font,
+            font_size: 40,
+            color: WHITE,
+            ..Default::default()
+        },
+    );
+
+    draw_text_ex(
+        "Press ENTER to start",
+        100.0,
+        160.0,
+        TextParams {
+            font: main_font,
+            font_size: 24,
+            color: GRAY,
+            ..Default::default()
+        },
+    );
 }
 
-fn draw_level_select(selected_level: usize) {
+pub fn draw_level_select(main_font: Option<&Font>, selected_level: usize) {
     clear_background(DARKGRAY);
 
-    draw_text("Select Level", 100.0, 80.0, 32.0, WHITE);
+    draw_text_ex(
+        "Select Level",
+        100.0,
+        80.0,
+        TextParams {
+            font: main_font,
+            font_size: 32,
+            color: WHITE,
+            ..Default::default()
+        },
+    );
 
     let text = format!("Level: {}", selected_level);
-    draw_text(&text, 100.0, 140.0, 28.0, YELLOW);
 
-    draw_text("← → to change", 100.0, 200.0, 20.0, GRAY);
-    draw_text("ENTER to play", 100.0, 230.0, 20.0, GRAY);
+    draw_text_ex(
+        &text,
+        100.0,
+        140.0,
+        TextParams {
+            font: main_font,
+            font_size: 28,
+            color: YELLOW,
+            ..Default::default()
+        },
+    );
+
+    draw_text_ex(
+        "← → to change",
+        100.0,
+        200.0,
+        TextParams {
+            font: main_font,
+            font_size: 20,
+            color: GRAY,
+            ..Default::default()
+        },
+    );
+
+    draw_text_ex(
+        "ENTER to play",
+        100.0,
+        230.0,
+        TextParams {
+            font: main_font,
+            font_size: 20,
+            color: GRAY,
+            ..Default::default()
+        },
+    );
 }
 
-fn draw_ingame_ui() {
-    // No limpiamos pantalla aquí, eso lo hace el juego
+pub fn draw_ingame_ui(main_font: Option<&Font>) {
+    // No limpiamos pantalla aquí
 
-    draw_text("Hunger: 75", 20.0, 30.0, 24.0, WHITE);
-    draw_text("Animals: 12", 20.0, 60.0, 24.0, WHITE);
+    draw_text_ex(
+        "Hunger: 75",
+        20.0,
+        30.0,
+        TextParams {
+            font: main_font,
+            font_size: 24,
+            color: WHITE,
+            ..Default::default()
+        },
+    );
+
+    draw_text_ex(
+        "Animals: 12",
+        20.0,
+        60.0,
+        TextParams {
+            font: main_font,
+            font_size: 24,
+            color: WHITE,
+            ..Default::default()
+        },
+    );
 }
 
-fn draw_game_over() {
+pub fn draw_game_over(main_font: Option<&Font>) {
     clear_background(BLACK);
 
-    draw_text("Game Over", 100.0, 120.0, 40.0, RED);
-    draw_text("Press ENTER to return to menu", 100.0, 180.0, 24.0, GRAY);
+    draw_text_ex(
+        "Game Over",
+        100.0,
+        120.0,
+        TextParams {
+            font: main_font,
+            font_size: 40,
+            color: RED,
+            ..Default::default()
+        },
+    );
+
+    draw_text_ex(
+        "Press ENTER to return to menu",
+        100.0,
+        180.0,
+        TextParams {
+            font: main_font,
+            font_size: 24,
+            color: GRAY,
+            ..Default::default()
+        },
+    );
 }
