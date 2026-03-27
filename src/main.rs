@@ -23,11 +23,15 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let game_manager = GameManager::new();
+    let mut game_manager = GameManager::new();
+    game_manager.debug_mode(true);
     game_manager.print_data();
 
     loop {
         clear_background(WHITE);
+
+        game_manager.update();
+        game_manager.draw();
 
         draw_text(
             "Hello world",

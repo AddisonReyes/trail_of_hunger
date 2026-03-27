@@ -1,9 +1,8 @@
 use crate::entities::*;
+use crate::ui::*;
 
 pub enum GameState {
-    Menu,
     Playing,
-    Pause,
     GameOver,
 }
 
@@ -14,6 +13,9 @@ pub struct GameManager {
     animals: Vec<Animal>,
     animals_remaining: usize,
     spawn_timer: f32,
+    view: UiState,
+    pause: bool,
+    debug: bool,
     level: i32,
 }
 
@@ -21,18 +23,9 @@ impl GameManager {
     pub fn new() -> Self {
         // load assets
 
-        // create initial nomads
-        let mut initial_nomads: Vec<Nomad> = Vec::new();
-        for _ in 0..2 {
-            initial_nomads.push(Nomad::new());
-        }
-
-        // create initial animals
-        let mut initial_animals: Vec<Animal> = Vec::new();
-        for _ in 0..6 {
-            initial_animals.push(Animal::new());
-        }
-
+        let view: UiState = UiState::new();
+        let initial_nomads: Vec<Nomad> = Vec::new();
+        let initial_animals: Vec<Animal> = Vec::new();
         let num_of_animals = initial_animals.len();
 
         return GameManager {
@@ -41,17 +34,43 @@ impl GameManager {
             animals: initial_animals,
             animals_remaining: num_of_animals,
             spawn_timer: 0.0,
-            level: 1,
+            debug: false,
+            pause: false,
+            view: view,
+            level: 0,
         };
     }
 
+    pub fn update(&mut self) {
+        match self.state {
+            GameState::Playing => {}
+            GameState::GameOver => {}
+        }
+
+        self.view.update();
+    }
+
+    pub fn draw(&self) {
+        self.view.draw();
+    }
+
+    pub fn pause_game(&mut self, value: bool) {
+        self.pause = value;
+    }
+
+    pub fn debug_mode(&mut self, value: bool) {
+        self.debug = value;
+    }
+
     pub fn print_data(&self) {
+        if !self.debug {
+            return;
+        }
+
         println!("GameManager");
         match self.state {
             GameState::GameOver => println!("\tstate: GameOver"),
             GameState::Playing => println!("\tstate: Playing"),
-            GameState::Pause => println!("\tstate: Pause"),
-            GameState::Menu => println!("\tstate: Menu"),
         }
         // println!("    assets: {},", self.assets);
         println!("\tnomads:");
@@ -68,6 +87,8 @@ impl GameManager {
 
         println!("\tanimals_remaining: {}", self.animals_remaining);
         println!("\tspawn_timer: {}", self.spawn_timer);
+        println!("\tpause: {}", self.pause);
+        println!("\tdebug: {}", self.debug);
         println!("\tlevel: {}", self.level);
     }
 }
