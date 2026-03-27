@@ -1,3 +1,4 @@
+use crate::assets::*;
 use crate::entities::*;
 use crate::ui::*;
 
@@ -8,7 +9,7 @@ pub enum GameState {
 
 pub struct GameManager {
     state: GameState,
-    // assets: Assets,
+    assets: Assets,
     nomads: Vec<Nomad>,
     animals: Vec<Animal>,
     animals_remaining: usize,
@@ -20,10 +21,10 @@ pub struct GameManager {
 }
 
 impl GameManager {
-    pub fn new() -> Self {
-        // load assets
+    pub async fn new() -> Self {
+        let assets_manager = Assets::load().await;
+        let view: UiState = UiState::new(assets_manager.main_font.clone());
 
-        let view: UiState = UiState::new();
         let initial_nomads: Vec<Nomad> = Vec::new();
         let initial_animals: Vec<Animal> = Vec::new();
         let num_of_animals = initial_animals.len();
@@ -34,6 +35,7 @@ impl GameManager {
             animals: initial_animals,
             animals_remaining: num_of_animals,
             spawn_timer: 0.0,
+            assets: assets_manager,
             debug: false,
             pause: false,
             view: view,

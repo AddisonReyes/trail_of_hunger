@@ -1,5 +1,8 @@
 use macroquad::prelude::*;
 
+pub const WINDOW_HEIGHT: i32 = 360;
+pub const WINDOW_WIDTH: i32 = 640;
+
 #[derive(Clone, Copy, PartialEq)]
 pub enum View {
     Menu,
@@ -11,13 +14,15 @@ pub enum View {
 pub struct UiState {
     pub current_view: View,
     pub selected_level: usize,
+    font: Option<Font>,
 }
 
 impl UiState {
-    pub fn new() -> Self {
+    pub fn new(main_font: Option<Font>) -> Self {
         Self {
             current_view: View::Menu,
             selected_level: 0,
+            font: main_font,
         }
     }
 
