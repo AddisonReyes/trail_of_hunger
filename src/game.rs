@@ -39,7 +39,7 @@ impl GameManager {
             debug: false,
             pause: false,
             view: view,
-            level: 0,
+            level: 1,
         };
     }
 

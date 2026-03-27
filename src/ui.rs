@@ -21,7 +21,7 @@ impl UiState {
     pub fn new(main_font: Option<Font>) -> Self {
         Self {
             current_view: View::Menu,
-            selected_level: 0,
+            selected_level: 1,
             font: main_font,
         }
     }
@@ -84,83 +84,63 @@ impl UiState {
 pub fn draw_menu(main_font: Option<&Font>) {
     clear_background(BLACK);
 
-    draw_text_ex(
+    draw_centered_text(
         "Trail of Hunger",
-        100.0,
-        100.0,
-        TextParams {
-            font: main_font,
-            font_size: 40,
-            color: WHITE,
-            ..Default::default()
-        },
+        (WINDOW_HEIGHT as f32 / 2.0) - 20.0,
+        main_font,
+        32,
+        WHITE,
     );
 
-    draw_text_ex(
-        "Press ENTER to start",
-        100.0,
-        160.0,
-        TextParams {
-            font: main_font,
-            font_size: 24,
-            color: GRAY,
-            ..Default::default()
-        },
+    draw_centered_text(
+        "Press \'Enter\' to start",
+        (WINDOW_HEIGHT as f32 / 2.0) + 20.0,
+        main_font,
+        16,
+        GRAY,
     );
 }
 
 pub fn draw_level_select(main_font: Option<&Font>, selected_level: usize) {
-    clear_background(DARKGRAY);
+    clear_background(BLACK);
 
-    draw_text_ex(
-        "Select Level",
-        100.0,
-        80.0,
-        TextParams {
-            font: main_font,
-            font_size: 32,
-            color: WHITE,
-            ..Default::default()
-        },
-    );
+    draw_centered_text("Select Level", 80.0, main_font, 32, WHITE);
 
-    let text = format!("Level: {}", selected_level);
+    let starting_x = (WINDOW_WIDTH / 5) as f32;
+    for level in 1..11 {
+        let text = format!("{}", level);
+        let x = starting_x + 32.0 * level as f32;
+        let y = 140.0;
 
-    draw_text_ex(
-        &text,
-        100.0,
-        140.0,
-        TextParams {
-            font: main_font,
-            font_size: 28,
-            color: YELLOW,
-            ..Default::default()
-        },
-    );
+        if level == selected_level {
+            draw_text_ex(
+                &text,
+                x,
+                y,
+                TextParams {
+                    font: main_font,
+                    font_size: 36,
+                    color: YELLOW,
+                    ..Default::default()
+                },
+            );
+        } else {
+            draw_text_ex(
+                &text,
+                x,
+                y,
+                TextParams {
+                    font: main_font,
+                    font_size: 32,
+                    color: GRAY,
+                    ..Default::default()
+                },
+            );
+        }
+    }
 
-    draw_text_ex(
-        "← → to change",
-        100.0,
-        200.0,
-        TextParams {
-            font: main_font,
-            font_size: 20,
-            color: GRAY,
-            ..Default::default()
-        },
-    );
-
-    draw_text_ex(
-        "ENTER to play",
-        100.0,
-        230.0,
-        TextParams {
-            font: main_font,
-            font_size: 20,
-            color: GRAY,
-            ..Default::default()
-        },
-    );
+    draw_centered_text("Use arrows or WASD to change", 240.0, main_font, 16, GRAY);
+    draw_centered_text("Press \'Enter\' to play", 280.0, main_font, 32, GRAY);
 }
 
 pub fn draw_ingame_ui(main_font: Option<&Font>) {
@@ -172,7 +152,7 @@ pub fn draw_ingame_ui(main_font: Option<&Font>) {
         30.0,
         TextParams {
             font: main_font,
-            font_size: 24,
+            font_size: 16,
             color: WHITE,
             ..Default::default()
         },
@@ -184,7 +164,7 @@ pub fn draw_ingame_ui(main_font: Option<&Font>) {
         60.0,
         TextParams {
             font: main_font,
-            font_size: 24,
+            font_size: 16,
             color: WHITE,
             ..Default::default()
         },
@@ -194,26 +174,34 @@ pub fn draw_ingame_ui(main_font: Option<&Font>) {
 pub fn draw_game_over(main_font: Option<&Font>) {
     clear_background(BLACK);
 
-    draw_text_ex(
+    draw_centered_text(
         "Game Over",
-        100.0,
-        120.0,
-        TextParams {
-            font: main_font,
-            font_size: 40,
-            color: RED,
-            ..Default::default()
-        },
+        (WINDOW_HEIGHT as f32 / 2.0) - 20.0,
+        main_font,
+        32,
+        RED,
     );
+    draw_centered_text(
+        "Press \'Enter\' to return to menu",
+        (WINDOW_HEIGHT as f32 / 2.0) + 20.0,
+        main_font,
+        16,
+        GRAY,
+    );
+}
+
+fn draw_centered_text(text: &str, y: f32, font: Option<&Font>, font_size: u16, text_color: Color) {
+    let dims = measure_text(text, font, font_size, 1.0);
+    let x = WINDOW_WIDTH as f32 / 2.0 - dims.width / 2.0;
 
     draw_text_ex(
-        "Press ENTER to return to menu",
-        100.0,
-        180.0,
+        text,
+        x,
+        y,
         TextParams {
-            font: main_font,
-            font_size: 24,
-            color: GRAY,
+            font,
+            font_size,
+            color: text_color,
             ..Default::default()
         },
     );
