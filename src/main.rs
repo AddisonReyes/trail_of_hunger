@@ -1,5 +1,13 @@
 use macroquad::prelude::*;
 
+use crate::game::GameManager;
+
+mod assets;
+mod entities;
+mod game;
+mod systems;
+mod ui;
+
 const WINDOW_HEIGHT: i32 = 180;
 const WINDOW_WIDTH: i32 = 320;
 
@@ -15,6 +23,9 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
+    let game_manager = GameManager::new();
+    game_manager.print_data();
+
     loop {
         clear_background(WHITE);
 
