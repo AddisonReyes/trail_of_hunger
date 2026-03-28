@@ -22,10 +22,10 @@ pub fn update(
         });
     }
 
-    if input.left_down {
-        if let Some(b) = selection_box.as_mut() {
-            b.current = mouse;
-        }
+    if input.left_down
+        && let Some(b) = selection_box.as_mut()
+    {
+        b.current = mouse;
     }
 
     if !input.left_released {

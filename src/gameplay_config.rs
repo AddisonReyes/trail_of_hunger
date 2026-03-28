@@ -20,6 +20,9 @@ pub struct GamePlayConfig {
     pub nomad_spear_cooldown: f32,
     pub nomad_move_reach: f32,
     pub nomad_eat_range: f32,
+    pub nomad_collision_radius: f32,
+    pub nomad_collision_iterations: u32,
+    pub nomad_collision_strength: f32,
 
     // Spears / projectiles
     pub spear_speed: f32,
@@ -73,6 +76,9 @@ impl Default for GamePlayConfig {
             nomad_spear_cooldown: 0.8,
             nomad_move_reach: 10.0,
             nomad_eat_range: 18.0,
+            nomad_collision_radius: 9.0,
+            nomad_collision_iterations: 2,
+            nomad_collision_strength: 1.0,
 
             spear_speed: 220.0,
             spear_ttl: 1.5,

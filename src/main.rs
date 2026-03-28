@@ -15,13 +15,13 @@ mod ui;
 mod world;
 
 fn window_conf() -> Conf {
-    return Conf {
+    Conf {
         window_title: WINDOW_TITLE.to_owned(),
         window_height: WINDOW_HEIGHT,
         window_width: WINDOW_WIDTH,
         window_resizable: false,
         ..Default::default()
-    };
+    }
 }
 
 #[macroquad::main(window_conf)]

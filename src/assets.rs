@@ -20,8 +20,8 @@ impl Assets {
             }
         }
 
-        return Assets {
+        Assets {
             main_font: alagard_font,
-        };
+        }
     }
 }

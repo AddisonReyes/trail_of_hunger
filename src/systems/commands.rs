@@ -90,10 +90,8 @@ fn pick_animal_id(world: &World, point: Vec2, radius: f32) -> Option<u32> {
     let mut best: Option<(u32, f32)> = None;
     for a in &world.animals {
         let d2 = a.get_position().distance_squared(point);
-        if d2 <= radius * radius {
-            if best.is_none() || d2 < best.unwrap().1 {
-                best = Some((a.id(), d2));
-            }
+        if d2 <= radius * radius && (best.is_none() || d2 < best.unwrap().1) {
+            best = Some((a.id(), d2));
         }
     }
     best.map(|b| b.0)
@@ -107,10 +105,8 @@ fn pick_corpse_id(world: &World, point: Vec2, radius: f32) -> Option<u32> {
         }
 
         let d2 = c.pos.distance_squared(point);
-        if d2 <= radius * radius {
-            if best.is_none() || d2 < best.unwrap().1 {
-                best = Some((c.id, d2));
-            }
+        if d2 <= radius * radius && (best.is_none() || d2 < best.unwrap().1) {
+            best = Some((c.id, d2));
         }
     }
     best.map(|b| b.0)

@@ -85,4 +85,70 @@ pub fn update(dt: f32, world: &mut World, hunger: &mut i32, tuning: &GamePlayCon
             }
         }
     }
+
+    resolve_nomad_collisions(world, tuning);
+}
+
+fn resolve_nomad_collisions(world: &mut World, cfg: &GamePlayConfig) {
+    let r = cfg.nomad_collision_radius;
+    if r <= 0.0 {
+        return;
+    }
+
+    let n = world.nomads.len();
+    if n < 2 {
+        return;
+    }
+
+    let bounds = world.bounds;
+    let min_dist = r * 2.0;
+    let min_dist2 = min_dist * min_dist;
+    let strength = cfg.nomad_collision_strength.clamp(0.0, 2.0);
+
+    for _ in 0..cfg.nomad_collision_iterations {
+        for i in 0..n {
+            for j in (i + 1)..n {
+                let pi = world.nomads[i].get_position();
+                let pj = world.nomads[j].get_position();
+
+                let delta = pj - pi;
+                let d2 = delta.length_squared();
+                if d2 >= min_dist2 {
+                    continue;
+                }
+
+                let d = d2.sqrt();
+                let normal = if d > 0.0001 {
+                    delta / d
+                } else {
+                    // Arbitrary but stable direction for perfect overlap.
+                    vec2(1.0, 0.0)
+                };
+
+                let penetration = (min_dist - d).max(0.0);
+                let push = normal * (penetration * 0.5 * strength);
+
+                let new_pi = wrap_position(pi - push, bounds);
+                let new_pj = wrap_position(pj + push, bounds);
+                world.nomads[i].set_position(new_pi);
+                world.nomads[j].set_position(new_pj);
+            }
+        }
+    }
+}
+
+fn wrap_position(mut pos: Vec2, bounds: Vec2) -> Vec2 {
+    if pos.x < 0.0 {
+        pos.x = bounds.x;
+    } else if pos.x > bounds.x {
+        pos.x = 0.0;
+    }
+
+    if pos.y < 0.0 {
+        pos.y = bounds.y;
+    } else if pos.y > bounds.y {
+        pos.y = 0.0;
+    }
+
+    pos
 }

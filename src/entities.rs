@@ -55,6 +55,10 @@ impl Nomad {
         self.position
     }
 
+    pub fn set_position(&mut self, position: Vec2) {
+        self.position = position;
+    }
+
     pub fn order(&self) -> NomadOrder {
         self.order
     }

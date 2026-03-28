@@ -80,22 +80,22 @@ pub fn draw_world(
     }
 
     // Selection rectangle (RTS-style).
-    if is_mouse_button_down(MouseButton::Left) {
-        if let Some(b) = selection_box {
-            let drag = (b.current - b.start).length();
-            if drag >= tuning.selection_drag_threshold {
-                let min_x = b.start.x.min(b.current.x);
-                let max_x = b.start.x.max(b.current.x);
-                let min_y = b.start.y.min(b.current.y);
-                let max_y = b.start.y.max(b.current.y);
-                let w = max_x - min_x;
-                let h = max_y - min_y;
+    if is_mouse_button_down(MouseButton::Left)
+        && let Some(b) = selection_box
+    {
+        let drag = (b.current - b.start).length();
+        if drag >= tuning.selection_drag_threshold {
+            let min_x = b.start.x.min(b.current.x);
+            let max_x = b.start.x.max(b.current.x);
+            let min_y = b.start.y.min(b.current.y);
+            let max_y = b.start.y.max(b.current.y);
+            let w = max_x - min_x;
+            let h = max_y - min_y;
 
-                let fill = color_u8!(255, 255, 255, 28);
-                let border = color_u8!(255, 255, 255, 160);
-                draw_rectangle(min_x, min_y, w, h, fill);
-                draw_rectangle_lines(min_x, min_y, w, h, 2.0, border);
-            }
+            let fill = color_u8!(255, 255, 255, 28);
+            let border = color_u8!(255, 255, 255, 160);
+            draw_rectangle(min_x, min_y, w, h, fill);
+            draw_rectangle_lines(min_x, min_y, w, h, 2.0, border);
         }
     }
 }
