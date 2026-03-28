@@ -7,6 +7,7 @@ use crate::world::{Spear, World};
 
 pub fn update(dt: f32, world: &mut World, hunger: &mut i32, tuning: &GamePlayConfig) {
     let bounds = world.bounds;
+    let nomad_radius = tuning.render_nomad_radius;
 
     for n in &mut world.nomads {
         n.tick_attack_cd(dt);
@@ -19,7 +20,7 @@ pub fn update(dt: f32, world: &mut World, hunger: &mut i32, tuning: &GamePlayCon
                     continue;
                 }
 
-                if n.move_towards(target, dt, tuning.nomad_speed, bounds) {
+                if n.move_towards(target, dt, tuning.nomad_speed, bounds, nomad_radius) {
                     n.set_order(NomadOrder::Idle);
                 }
             }
@@ -37,7 +38,7 @@ pub fn update(dt: f32, world: &mut World, hunger: &mut i32, tuning: &GamePlayCon
 
                 let dist = n.get_position().distance(target_pos);
                 if dist > tuning.nomad_attack_range {
-                    n.move_towards(target_pos, dt, tuning.nomad_speed, bounds);
+                    n.move_towards(target_pos, dt, tuning.nomad_speed, bounds, nomad_radius);
                     continue;
                 }
 
@@ -67,7 +68,7 @@ pub fn update(dt: f32, world: &mut World, hunger: &mut i32, tuning: &GamePlayCon
 
                 let dist = n.get_position().distance(target_pos);
                 if dist > tuning.nomad_eat_range {
-                    n.move_towards(target_pos, dt, tuning.nomad_speed, bounds);
+                    n.move_towards(target_pos, dt, tuning.nomad_speed, bounds, nomad_radius);
                     continue;
                 }
 
@@ -101,6 +102,7 @@ fn resolve_nomad_collisions(world: &mut World, cfg: &GamePlayConfig) {
     }
 
     let bounds = world.bounds;
+    let clamp_r = cfg.render_nomad_radius.max(0.0);
     let min_dist = r * 2.0;
     let min_dist2 = min_dist * min_dist;
     let strength = cfg.nomad_collision_strength.clamp(0.0, 2.0);
@@ -128,8 +130,8 @@ fn resolve_nomad_collisions(world: &mut World, cfg: &GamePlayConfig) {
                 let penetration = (min_dist - d).max(0.0);
                 let push = normal * (penetration * 0.5 * strength);
 
-                let new_pi = wrap_position(pi - push, bounds);
-                let new_pj = wrap_position(pj + push, bounds);
+                let new_pi = clamp_position(pi - push, bounds, clamp_r);
+                let new_pj = clamp_position(pj + push, bounds, clamp_r);
                 world.nomads[i].set_position(new_pi);
                 world.nomads[j].set_position(new_pj);
             }
@@ -137,18 +139,13 @@ fn resolve_nomad_collisions(world: &mut World, cfg: &GamePlayConfig) {
     }
 }
 
-fn wrap_position(mut pos: Vec2, bounds: Vec2) -> Vec2 {
-    if pos.x < 0.0 {
-        pos.x = bounds.x;
-    } else if pos.x > bounds.x {
-        pos.x = 0.0;
-    }
+fn clamp_position(pos: Vec2, bounds: Vec2, radius: f32) -> Vec2 {
+    let r = radius.max(0.0);
 
-    if pos.y < 0.0 {
-        pos.y = bounds.y;
-    } else if pos.y > bounds.y {
-        pos.y = 0.0;
-    }
+    let min_x = r;
+    let max_x = (bounds.x - r).max(min_x);
+    let min_y = r;
+    let max_y = (bounds.y - r).max(min_y);
 
-    pos
+    vec2(pos.x.clamp(min_x, max_x), pos.y.clamp(min_y, max_y))
 }

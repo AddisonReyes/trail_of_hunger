@@ -44,13 +44,18 @@ pub struct GameManager {
     paused: bool,
     debug: bool,
     level: i32,
+
+    last_mouse: Vec2,
+
+    level_animals_total: usize,
 }
 
 impl GameManager {
     pub async fn new() -> Self {
         let assets = Assets::load().await;
         let config = GamePlayConfig::default();
-        let bounds = vec2(WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32);
+        let playfield_h = (WINDOW_HEIGHT as f32 - config.ui_top_bar_height).max(1.0);
+        let bounds = vec2(WINDOW_WIDTH as f32, playfield_h);
 
         Self {
             assets,
@@ -67,6 +72,8 @@ impl GameManager {
             paused: false,
             debug: false,
             level: 1,
+            last_mouse: vec2(0.0, 0.0),
+            level_animals_total: 0,
         }
     }
 
@@ -83,6 +90,7 @@ impl GameManager {
     }
 
     pub fn update(&mut self, input: &InputState) {
+        self.last_mouse = input.mouse;
         self.update_screen(input);
 
         if self.screen == Screen::InGame && !self.paused {
@@ -109,14 +117,19 @@ impl GameManager {
                     self.selection_box,
                     self.command.last_command,
                     &self.config,
+                    self.assets.main_font.as_ref(),
+                    self.level,
                 );
 
                 let paused_for_ui = self.paused && self.level_transition.is_none();
+                let selected_nomads = self.world.nomads.iter().filter(|n| n.is_selected()).count();
                 ui::draw_ingame_ui(
                     self.assets.main_font.as_ref(),
                     paused_for_ui,
                     self.hunger,
                     self.world.animals.len(),
+                    self.level_animals_total,
+                    &self.config,
                 );
 
                 if let Some(t) = self.level_transition {
@@ -125,6 +138,14 @@ impl GameManager {
                         self.level,
                         t.timer,
                         t.next_level.is_none(),
+                    );
+                } else if !paused_for_ui {
+                    ui::draw_hover_label(
+                        self.assets.main_font.as_ref(),
+                        self.last_mouse,
+                        &self.world,
+                        selected_nomads,
+                        &self.config,
                     );
                 }
             }
@@ -136,6 +157,7 @@ impl GameManager {
         self.paused = value;
     }
 
+    #[allow(dead_code)]
     pub fn debug_mode(&mut self, value: bool) {
         self.debug = value;
     }
@@ -192,11 +214,14 @@ impl GameManager {
             // Invalid level id; return to level select.
             self.screen = Screen::LevelSelect;
             self.selected_level = self.total_levels();
+            self.level_animals_total = 0;
             return;
         };
 
         self.level = level as i32;
         self.pause_game(false);
+
+        self.level_animals_total = spec.animals;
 
         self.world.clear_entities();
         self.selection_box = None;
@@ -235,14 +260,28 @@ impl GameManager {
     fn update_game(&mut self, input: &InputState) {
         let dt = get_frame_time();
 
+        // Convert screen mouse -> world mouse (playfield space).
+        // Also prevent clicks from going through the top bar.
+        let mut winput = *input;
+        let bar_h = self.config.ui_top_bar_height;
+        if winput.mouse.y <= bar_h {
+            // Block starting new interactions on the top bar, but allow drag/release
+            // to finish if the player moved the mouse into the bar mid-drag.
+            winput.left_pressed = false;
+            winput.right_pressed = false;
+            winput.mouse.y = 0.0;
+        } else {
+            winput.mouse.y -= bar_h;
+        }
+
         systems::selection::update(
-            input,
+            &winput,
             &mut self.world,
             &mut self.selection_box,
             &self.config,
         );
         if self.level_transition.is_none() {
-            systems::commands::update(input, &mut self.world, &mut self.command, &self.config);
+            systems::commands::update(&winput, &mut self.world, &mut self.command, &self.config);
         }
 
         systems::nomads::update(dt, &mut self.world, &mut self.hunger, &self.config);

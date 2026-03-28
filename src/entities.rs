@@ -3,20 +3,15 @@ use macroquad::rand::gen_range;
 
 use crate::gameplay_config::GamePlayConfig;
 
-fn wrap_position(mut pos: Vec2, bounds: Vec2) -> Vec2 {
-    if pos.x < 0.0 {
-        pos.x = bounds.x;
-    } else if pos.x > bounds.x {
-        pos.x = 0.0;
-    }
+fn clamp_position(pos: Vec2, bounds: Vec2, radius: f32) -> Vec2 {
+    let r = radius.max(0.0);
 
-    if pos.y < 0.0 {
-        pos.y = bounds.y;
-    } else if pos.y > bounds.y {
-        pos.y = 0.0;
-    }
+    let min_x = r;
+    let max_x = (bounds.x - r).max(min_x);
+    let min_y = r;
+    let max_y = (bounds.y - r).max(min_y);
 
-    pos
+    vec2(pos.x.clamp(min_x, max_x), pos.y.clamp(min_y, max_y))
 }
 
 fn random_unit_vec2() -> Vec2 {
@@ -91,22 +86,29 @@ impl Nomad {
         self.position.distance(point) <= radius
     }
 
-    pub fn move_dir(&mut self, dir: Vec2, dt: f32, speed: f32, bounds: Vec2) {
+    pub fn move_dir(&mut self, dir: Vec2, dt: f32, speed: f32, bounds: Vec2, radius: f32) {
         if dir.length_squared() == 0.0 {
             return;
         }
 
         self.position += dir.normalize() * speed * dt;
-        self.position = wrap_position(self.position, bounds);
+        self.position = clamp_position(self.position, bounds, radius);
     }
 
-    pub fn move_towards(&mut self, target: Vec2, dt: f32, speed: f32, bounds: Vec2) -> bool {
+    pub fn move_towards(
+        &mut self,
+        target: Vec2,
+        dt: f32,
+        speed: f32,
+        bounds: Vec2,
+        radius: f32,
+    ) -> bool {
         let to = target - self.position;
         if to.length() <= 2.0 {
             return true;
         }
 
-        self.move_dir(to, dt, speed, bounds);
+        self.move_dir(to, dt, speed, bounds, radius);
         false
     }
 
@@ -208,6 +210,28 @@ impl Animal {
         }
 
         self.position += self.velocity * dt;
-        self.position = wrap_position(self.position, bounds);
+
+        // Bounce off edges instead of wrapping.
+        let r = tuning.render_animal_radius.max(0.0);
+        let min_x = r;
+        let max_x = (bounds.x - r).max(min_x);
+        let min_y = r;
+        let max_y = (bounds.y - r).max(min_y);
+
+        if self.position.x < min_x {
+            self.position.x = min_x;
+            self.velocity.x = self.velocity.x.abs();
+        } else if self.position.x > max_x {
+            self.position.x = max_x;
+            self.velocity.x = -self.velocity.x.abs();
+        }
+
+        if self.position.y < min_y {
+            self.position.y = min_y;
+            self.velocity.y = self.velocity.y.abs();
+        } else if self.position.y > max_y {
+            self.position.y = max_y;
+            self.velocity.y = -self.velocity.y.abs();
+        }
     }
 }

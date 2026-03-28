@@ -6,6 +6,9 @@ pub const FONT_PATH: &str = "assets/fonts/alagard.ttf";
 
 #[derive(Clone, Copy, Debug)]
 pub struct GamePlayConfig {
+    // UI
+    pub ui_top_bar_height: f32,
+
     // Selection / input
     pub selection_nomad_radius: f32,
     pub selection_drag_threshold: f32,
@@ -62,6 +65,8 @@ pub struct GamePlayConfig {
 impl Default for GamePlayConfig {
     fn default() -> Self {
         Self {
+            ui_top_bar_height: 72.0,
+
             selection_nomad_radius: 14.0,
             selection_drag_threshold: 6.0,
 

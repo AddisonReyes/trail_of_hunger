@@ -1,6 +1,8 @@
 use macroquad::prelude::*;
 
+use crate::gameplay_config::GamePlayConfig;
 use crate::gameplay_config::{WINDOW_HEIGHT, WINDOW_WIDTH};
+use crate::world::World;
 
 pub fn draw_menu(main_font: Option<&Font>) {
     clear_background(BLACK);
@@ -137,29 +139,83 @@ pub fn draw_ingame_ui(
     paused: bool,
     hunger: i32,
     animals_remaining: usize,
+    animals_total: usize,
+    cfg: &GamePlayConfig,
 ) {
+    let w = screen_width();
+    let h = screen_height();
+    let ui_scale = ((w / WINDOW_WIDTH as f32).min(h / WINDOW_HEIGHT as f32)).clamp(0.75, 1.6);
+
+    // Top bar
+    let bar_h = cfg.ui_top_bar_height;
+    draw_rectangle(0.0, 0.0, w, bar_h, Color::new(0.0, 0.0, 0.0, 0.62));
+    draw_line(0.0, bar_h, w, bar_h, 1.0, Color::new(1.0, 1.0, 1.0, 0.12));
+
+    let pad_x = 12.0 * ui_scale;
+    let pad_y = 10.0 * ui_scale;
+    let font_size = (16.0 * ui_scale) as u16;
+    let col_gap = 16.0 * ui_scale;
+    let col_w = ((w - pad_x * 2.0 - col_gap) * 0.5).max(1.0);
+
+    let col1_x = pad_x;
+    let col2_x = pad_x + col_w + col_gap;
+    let row1_y = pad_y + 20.0 * ui_scale;
+    let bar_y = pad_y + 32.0 * ui_scale;
+    let bar_w = col_w;
+    let bar_h2 = (10.0 * ui_scale).clamp(6.0, 14.0);
+
+    // Hunger
+    let hunger_max = cfg.hunger_max.max(1) as f32;
+    let hunger_pct = (hunger as f32 / hunger_max).clamp(0.0, 1.0);
+    let hunger_label = format!("Hunger {}/{}", hunger.max(0), cfg.hunger_max);
     draw_text_ex(
-        &format!("Hunger: {}", hunger),
-        20.0,
-        30.0,
+        &hunger_label,
+        col1_x,
+        row1_y,
         TextParams {
             font: main_font,
-            font_size: 16,
+            font_size,
             color: WHITE,
             ..Default::default()
         },
     );
 
+    let mut hunger_color = if hunger_pct > 0.6 {
+        Color::new(0.35, 0.85, 0.45, 1.0)
+    } else if hunger_pct > 0.3 {
+        Color::new(0.95, 0.85, 0.25, 1.0)
+    } else {
+        Color::new(0.95, 0.35, 0.25, 1.0)
+    };
+    if hunger_pct <= 0.25 {
+        let t = get_time() as f32;
+        hunger_color.a = (0.65 + 0.35 * (t * 6.0).sin()).clamp(0.2, 1.0);
+    }
+    draw_bar(col1_x, bar_y, bar_w, bar_h2, hunger_pct, hunger_color);
+
+    // Animals
+    let animals_total = animals_total.max(1);
+    let animals_done = animals_total.saturating_sub(animals_remaining.min(animals_total));
+    let animals_pct = animals_done as f32 / animals_total as f32;
+    let animals_label = format!("Animals {}/{}", animals_remaining, animals_total);
     draw_text_ex(
-        &format!("Animals: {}", animals_remaining),
-        20.0,
-        60.0,
+        &animals_label,
+        col2_x,
+        row1_y,
         TextParams {
             font: main_font,
-            font_size: 16,
+            font_size,
             color: WHITE,
             ..Default::default()
         },
+    );
+    draw_bar(
+        col2_x,
+        bar_y,
+        bar_w,
+        bar_h2,
+        animals_pct,
+        Color::new(0.55, 0.7, 0.95, 0.95),
     );
 
     if !paused {
@@ -167,31 +223,143 @@ pub fn draw_ingame_ui(
     }
 
     let overlay = Color::new(0.0, 0.0, 0.0, 0.55);
-    draw_rectangle(0.0, 0.0, WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32, overlay);
+    draw_rectangle(0.0, 0.0, w, h, overlay);
 
     draw_centered_text(
         "Game paused",
-        (WINDOW_HEIGHT as f32 / 2.0) - 20.0,
+        h * 0.47,
         main_font,
-        32,
+        (32.0 * ui_scale) as u16,
         WHITE,
     );
 
     draw_centered_text(
         "Press \'Esc\' to resume.",
-        (WINDOW_HEIGHT as f32 / 2.0) + 20.0,
+        h * 0.55,
         main_font,
-        16,
+        (16.0 * ui_scale) as u16,
         GRAY,
     );
 
     draw_centered_text(
         "Press \'Enter\' to level select",
-        (WINDOW_HEIGHT as f32 / 2.0) + 40.0,
+        h * 0.6,
         main_font,
-        16,
+        (16.0 * ui_scale) as u16,
         GRAY,
     );
+}
+
+pub fn draw_hover_label(
+    main_font: Option<&Font>,
+    mouse: Vec2,
+    world: &World,
+    selected_nomads: usize,
+    cfg: &GamePlayConfig,
+) {
+    if mouse.y <= cfg.ui_top_bar_height {
+        return;
+    }
+
+    let Some(text) = hovered_label(mouse, world, selected_nomads, cfg) else {
+        return;
+    };
+
+    let w = screen_width();
+    let h = screen_height();
+    let ui_scale = ((w / WINDOW_WIDTH as f32).min(h / WINDOW_HEIGHT as f32)).clamp(0.75, 1.6);
+
+    let font_size = (16.0 * ui_scale) as u16;
+    let padding_x = 6.0 * ui_scale;
+    let padding_y = 4.0 * ui_scale;
+
+    let dims = measure_text(&text, main_font, font_size, 1.0);
+
+    let mut x = mouse.x + 14.0 * ui_scale;
+    let mut y = mouse.y - 10.0 * ui_scale;
+
+    let bg_w = dims.width + padding_x * 2.0;
+    let bg_h = dims.height + padding_y * 2.0;
+
+    // Keep tooltip on-screen.
+    if x + bg_w > w {
+        x = (w - bg_w).max(0.0);
+    }
+    if y - bg_h < 0.0 {
+        y = bg_h;
+    }
+
+    let bg_x = x;
+    let bg_y = y - bg_h;
+    draw_rectangle(bg_x, bg_y, bg_w, bg_h, Color::new(0.0, 0.0, 0.0, 0.72));
+    draw_rectangle_lines(bg_x, bg_y, bg_w, bg_h, 1.0, Color::new(1.0, 1.0, 1.0, 0.25));
+
+    draw_text_ex(
+        &text,
+        bg_x + padding_x,
+        bg_y + padding_y + dims.height,
+        TextParams {
+            font: main_font,
+            font_size,
+            color: WHITE,
+            ..Default::default()
+        },
+    );
+}
+
+fn hovered_label(
+    mouse: Vec2,
+    world: &World,
+    selected_nomads: usize,
+    cfg: &GamePlayConfig,
+) -> Option<String> {
+    let mouse = vec2(mouse.x, mouse.y - cfg.ui_top_bar_height);
+    let nomad_r = cfg.render_nomad_radius + 4.0;
+    let animal_r = cfg.render_animal_radius + 4.0;
+    let corpse_r = cfg.render_corpse_radius + 4.0;
+
+    let nomad_r2 = nomad_r * nomad_r;
+    let animal_r2 = animal_r * animal_r;
+    let corpse_r2 = corpse_r * corpse_r;
+
+    if world
+        .nomads
+        .iter()
+        .any(|n| n.get_position().distance_squared(mouse) <= nomad_r2)
+    {
+        return Some("Nomad".to_owned());
+    }
+
+    if world
+        .animals
+        .iter()
+        .any(|a| a.get_position().distance_squared(mouse) <= animal_r2)
+    {
+        if selected_nomads > 0 {
+            return Some("Animal (Right click to hunt)".to_owned());
+        }
+        return Some("Animal".to_owned());
+    }
+
+    if world
+        .corpses
+        .iter()
+        .any(|c| c.available && c.pos.distance_squared(mouse) <= corpse_r2)
+    {
+        if selected_nomads > 0 {
+            return Some("Meat (Right click to eat)".to_owned());
+        }
+        return Some("Meat".to_owned());
+    }
+
+    None
+}
+
+fn draw_bar(x: f32, y: f32, w: f32, h: f32, pct: f32, fill: Color) {
+    let pct = pct.clamp(0.0, 1.0);
+    draw_rectangle(x, y, w, h, Color::new(0.0, 0.0, 0.0, 0.35));
+    draw_rectangle(x, y, w * pct, h, fill);
+    draw_rectangle_lines(x, y, w, h, 1.0, Color::new(1.0, 1.0, 1.0, 0.12));
 }
 
 pub fn draw_game_over(main_font: Option<&Font>) {
@@ -220,22 +388,26 @@ pub fn draw_level_complete_overlay(
     seconds_left: f32,
     is_final: bool,
 ) {
+    let w = screen_width();
+    let h = screen_height();
+    let ui_scale = ((w / WINDOW_WIDTH as f32).min(h / WINDOW_HEIGHT as f32)).clamp(0.75, 1.6);
+
     let overlay = Color::new(0.0, 0.0, 0.0, 0.55);
-    draw_rectangle(0.0, 0.0, WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32, overlay);
+    draw_rectangle(0.0, 0.0, w, h, overlay);
 
     if is_final {
         draw_centered_text(
             "You win!",
-            (WINDOW_HEIGHT as f32 / 2.0) - 20.0,
+            h * 0.47,
             main_font,
-            32,
+            (32.0 * ui_scale) as u16,
             YELLOW,
         );
         draw_centered_text(
             "Returning to level select...",
-            (WINDOW_HEIGHT as f32 / 2.0) + 20.0,
+            h * 0.55,
             main_font,
-            16,
+            (16.0 * ui_scale) as u16,
             GRAY,
         );
         return;
@@ -244,16 +416,16 @@ pub fn draw_level_complete_overlay(
     let secs = seconds_left.ceil().max(0.0) as i32;
     draw_centered_text(
         &format!("Level {} complete", level),
-        (WINDOW_HEIGHT as f32 / 2.0) - 20.0,
+        h * 0.47,
         main_font,
-        32,
+        (32.0 * ui_scale) as u16,
         YELLOW,
     );
     draw_centered_text(
         &format!("Next level in {}", secs),
-        (WINDOW_HEIGHT as f32 / 2.0) + 20.0,
+        h * 0.55,
         main_font,
-        16,
+        (16.0 * ui_scale) as u16,
         GRAY,
     );
 }
