@@ -1,6 +1,6 @@
 pub const WINDOW_TITLE: &str = "Trail of Hunger";
-pub const WINDOW_WIDTH: i32 = 640;
-pub const WINDOW_HEIGHT: i32 = 360;
+pub const WINDOW_WIDTH: i32 = 800;
+pub const WINDOW_HEIGHT: i32 = 600;
 
 pub const FONT_PATH: &str = "assets/fonts/alagard.ttf";
 
@@ -84,10 +84,10 @@ impl Default for GamePlayConfig {
             spear_ttl: 1.5,
             spear_hit_radius: 10.0,
 
-            hunger_start: 45,
+            hunger_start: 50,
             hunger_max: 100,
             hunger_tick_seconds: 1.0,
-            eat_gain_min: 1,
+            eat_gain_min: 2,
             eat_gain_max: 4,
 
             animal_wander_speed_min: 10.0,

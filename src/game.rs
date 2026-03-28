@@ -30,6 +30,8 @@ pub struct GameManager {
     world: World,
     config: GamePlayConfig,
 
+    unlocked_max_level: usize,
+
     selection_box: Option<SelectionBox>,
     command: CommandState,
 
@@ -54,6 +56,7 @@ impl GameManager {
             screen: Screen::Menu,
             world: World::new(bounds),
             config,
+            unlocked_max_level: 1,
             selection_box: None,
             command: CommandState::default(),
             hunger_timer: 0.0,
@@ -63,6 +66,14 @@ impl GameManager {
             paused: false,
             debug: false,
             level: 1,
+        }
+    }
+
+    fn unlocked_cap(&self) -> usize {
+        if self.debug {
+            self.config.max_levels
+        } else {
+            self.unlocked_max_level.clamp(1, self.config.max_levels)
         }
     }
 
@@ -84,6 +95,7 @@ impl GameManager {
             Screen::LevelSelect => ui::draw_level_select(
                 self.assets.main_font.as_ref(),
                 self.selected_level,
+                self.unlocked_cap(),
                 self.config.max_levels,
             ),
             Screen::InGame => {
@@ -93,9 +105,11 @@ impl GameManager {
                     self.command.last_command,
                     &self.config,
                 );
+
+                let paused_for_ui = self.paused && self.level_transition.is_none();
                 ui::draw_ingame_ui(
                     self.assets.main_font.as_ref(),
-                    self.paused,
+                    paused_for_ui,
                     self.hunger,
                     self.world.animals.len(),
                 );
@@ -129,19 +143,18 @@ impl GameManager {
                 }
             }
             Screen::LevelSelect => {
-                if (input.right_pressed_key || input.d_pressed)
-                    && self.selected_level < self.config.max_levels
-                {
-                    self.selected_level += 1;
-                }
-
-                if (input.left_pressed_key || input.a_pressed) && self.selected_level > 1 {
-                    self.selected_level -= 1;
+                // Mouse wheel carousel: scroll down -> next level, scroll up -> previous level.
+                if input.wheel_y < 0.0 {
+                    self.selected_level = (self.selected_level + 1).min(self.config.max_levels);
+                } else if input.wheel_y > 0.0 {
+                    self.selected_level = self.selected_level.saturating_sub(1).max(1);
                 }
 
                 if input.enter_pressed {
-                    self.start_level(self.selected_level);
-                    self.screen = Screen::InGame;
+                    if self.selected_level <= self.unlocked_cap() {
+                        self.start_level(self.selected_level);
+                        self.screen = Screen::InGame;
+                    }
                 }
 
                 if input.escape_pressed {
@@ -149,11 +162,11 @@ impl GameManager {
                 }
             }
             Screen::InGame => {
-                if input.escape_pressed {
+                if input.escape_pressed && self.level_transition.is_none() {
                     self.pause_game(!self.paused);
                 }
 
-                if self.paused && input.enter_pressed {
+                if self.paused && input.enter_pressed && self.level_transition.is_none() {
                     self.pause_game(false);
                     self.screen = Screen::LevelSelect;
                 }
@@ -278,6 +291,12 @@ impl GameManager {
             "\tselected_level: {}\tlevel: {}\tpause: {}\tdebug: {}",
             self.selected_level, self.level, self.paused, self.debug
         );
+
+        println!(
+            "\tunlocked_max_level: {} (cap: {})",
+            self.unlocked_max_level,
+            self.unlocked_cap()
+        );
     }
 
     fn screen_name(&self) -> &'static str {
@@ -290,6 +309,15 @@ impl GameManager {
     }
 
     fn begin_level_transition(&mut self) {
+        // Don't allow pause overlay during transitions.
+        self.pause_game(false);
+
+        if !self.debug {
+            let current = self.level.max(1) as usize;
+            let next_unlock = (current + 1).min(self.config.max_levels);
+            self.unlocked_max_level = self.unlocked_max_level.max(next_unlock);
+        }
+
         let next_level = (self.level as usize).saturating_add(1);
         let next = if next_level <= self.config.max_levels {
             Some(next_level)
