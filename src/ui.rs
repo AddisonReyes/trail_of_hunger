@@ -1,7 +1,6 @@
 use macroquad::prelude::*;
 
-pub const WINDOW_HEIGHT: i32 = 360;
-pub const WINDOW_WIDTH: i32 = 640;
+use crate::gameplay_config::{WINDOW_HEIGHT, WINDOW_WIDTH};
 
 pub fn draw_menu(main_font: Option<&Font>) {
     clear_background(BLACK);
@@ -23,13 +22,13 @@ pub fn draw_menu(main_font: Option<&Font>) {
     );
 }
 
-pub fn draw_level_select(main_font: Option<&Font>, selected_level: usize) {
+pub fn draw_level_select(main_font: Option<&Font>, selected_level: usize, max_levels: usize) {
     clear_background(BLACK);
 
     draw_centered_text("Select Level", 80.0, main_font, 32, WHITE);
 
     let starting_x = (WINDOW_WIDTH / 5) as f32;
-    for level in 1..11 {
+    for level in 1..=max_levels {
         let text = format!("{}", level);
         let x = starting_x + 32.0 * level as f32;
         let y = 140.0;

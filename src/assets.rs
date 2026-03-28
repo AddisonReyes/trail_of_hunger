@@ -1,10 +1,10 @@
 use macroquad::prelude::*;
 
+use crate::gameplay_config::FONT_PATH;
+
 pub struct Assets {
     pub main_font: Option<Font>,
 }
-
-const FONT_PATH: &str = "assets/fonts/alagard.ttf";
 
 impl Assets {
     pub async fn load() -> Self {

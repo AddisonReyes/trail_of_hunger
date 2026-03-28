@@ -1,6 +1,8 @@
 use macroquad::prelude::*;
 use macroquad::rand::gen_range;
 
+use crate::gameplay_config::GamePlayConfig;
+
 fn wrap_position(mut pos: Vec2, bounds: Vec2) -> Vec2 {
     if pos.x < 0.0 {
         pos.x = bounds.x;
@@ -129,12 +131,19 @@ pub struct Animal {
 }
 
 impl Animal {
-    pub fn new_at(id: u32, position: Vec2) -> Self {
+    pub fn new_at(id: u32, position: Vec2, tuning: &GamePlayConfig) -> Self {
         Self {
             id,
             position,
-            velocity: random_unit_vec2() * gen_range(12.0, 20.0),
-            wander_timer: gen_range(0.3, 1.2),
+            velocity: random_unit_vec2()
+                * gen_range(
+                    tuning.animal_wander_speed_min,
+                    tuning.animal_wander_speed_max,
+                ),
+            wander_timer: gen_range(
+                tuning.animal_wander_timer_init_min,
+                tuning.animal_wander_timer_init_max,
+            ),
             hp: 1,
         }
     }
@@ -155,30 +164,42 @@ impl Animal {
         self.position
     }
 
-    pub fn update(&mut self, dt: f32, nomads: &[Nomad], bounds: Vec2) {
-        const WANDER_SPEED_MIN: f32 = 10.0;
-        const WANDER_SPEED_MAX: f32 = 22.0;
-        const FLEE_RADIUS: f32 = 60.0;
-        const FLEE_SPEED: f32 = 80.0;
+    pub fn update(&mut self, dt: f32, nomads: &[Nomad], bounds: Vec2, tuning: &GamePlayConfig) {
+        let flee_radius = tuning.animal_flee_radius;
 
         let mut flee = vec2(0.0, 0.0);
+        let mut closest_d2 = f32::INFINITY;
         for n in nomads {
             let delta = self.position - n.get_position();
             let d2 = delta.length_squared();
-            if d2 > 0.0001 && d2 < (FLEE_RADIUS * FLEE_RADIUS) {
+            if d2 > 0.0001 && d2 < (flee_radius * flee_radius) {
                 // Weighted stronger when closer.
                 flee += delta.normalize() * (1.0 / d2.sqrt());
+                closest_d2 = closest_d2.min(d2);
             }
         }
 
         if flee.length_squared() > 0.0 {
-            self.velocity = flee.normalize() * FLEE_SPEED;
-            self.wander_timer = gen_range(0.2, 0.6);
+            // Move a bit faster when a nomad is very close.
+            let r2 = flee_radius * flee_radius;
+            let t = ((r2 - closest_d2) / r2).clamp(0.0, 1.0);
+            let flee_speed = tuning.animal_flee_speed_base
+                + (tuning.animal_flee_speed_max - tuning.animal_flee_speed_base) * t;
+            self.velocity = flee.normalize() * flee_speed;
+            self.wander_timer =
+                gen_range(tuning.animal_flee_timer_min, tuning.animal_flee_timer_max);
         } else {
             self.wander_timer -= dt;
             if self.wander_timer <= 0.0 {
-                self.wander_timer = gen_range(0.4, 1.4);
-                self.velocity = random_unit_vec2() * gen_range(WANDER_SPEED_MIN, WANDER_SPEED_MAX);
+                self.wander_timer = gen_range(
+                    tuning.animal_wander_timer_reset_min,
+                    tuning.animal_wander_timer_reset_max,
+                );
+                self.velocity = random_unit_vec2()
+                    * gen_range(
+                        tuning.animal_wander_speed_min,
+                        tuning.animal_wander_speed_max,
+                    );
             }
         }
 

@@ -1,18 +1,24 @@
-use macroquad::prelude::*;
-
 use crate::game::GameManager;
+use crate::gameplay_config::{WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
+use crate::input::gather_input;
+use macroquad::prelude::*;
 
 mod assets;
 mod entities;
 mod game;
+mod gameplay_config;
+mod input;
+mod render;
+mod state;
 mod systems;
 mod ui;
+mod world;
 
 fn window_conf() -> Conf {
     return Conf {
-        window_title: "Trail of Hunger".to_owned(),
-        window_height: ui::WINDOW_HEIGHT,
-        window_width: ui::WINDOW_WIDTH,
+        window_title: WINDOW_TITLE.to_owned(),
+        window_height: WINDOW_HEIGHT,
+        window_width: WINDOW_WIDTH,
         window_resizable: false,
         ..Default::default()
     };
@@ -26,7 +32,9 @@ async fn main() {
     loop {
         clear_background(BLACK);
 
-        game_manager.update();
+        let input = gather_input();
+
+        game_manager.update(&input);
         game_manager.draw();
 
         next_frame().await
