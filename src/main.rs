@@ -8,6 +8,7 @@ mod entities;
 mod game;
 mod gameplay_config;
 mod input;
+mod levels;
 mod render;
 mod state;
 mod systems;

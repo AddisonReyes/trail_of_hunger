@@ -166,6 +166,9 @@ pub fn draw_ingame_ui(
         return;
     }
 
+    let overlay = Color::new(0.0, 0.0, 0.0, 0.55);
+    draw_rectangle(0.0, 0.0, WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32, overlay);
+
     draw_centered_text(
         "Game paused",
         (WINDOW_HEIGHT as f32 / 2.0) - 20.0,

@@ -6,6 +6,7 @@ use crate::entities::{Animal, Nomad};
 use crate::gameplay_config::GamePlayConfig;
 use crate::gameplay_config::{WINDOW_HEIGHT, WINDOW_WIDTH};
 use crate::input::InputState;
+use crate::levels;
 use crate::state::{CommandState, SelectionBox};
 use crate::world::World;
 use crate::{render, systems, ui};
@@ -71,10 +72,14 @@ impl GameManager {
 
     fn unlocked_cap(&self) -> usize {
         if self.debug {
-            self.config.max_levels
+            self.total_levels()
         } else {
-            self.unlocked_max_level.clamp(1, self.config.max_levels)
+            self.unlocked_max_level.clamp(1, self.total_levels())
         }
+    }
+
+    fn total_levels(&self) -> usize {
+        levels::count().max(1)
     }
 
     pub fn update(&mut self, input: &InputState) {
@@ -96,7 +101,7 @@ impl GameManager {
                 self.assets.main_font.as_ref(),
                 self.selected_level,
                 self.unlocked_cap(),
-                self.config.max_levels,
+                self.total_levels(),
             ),
             Screen::InGame => {
                 render::world::draw_world(
@@ -145,10 +150,13 @@ impl GameManager {
             Screen::LevelSelect => {
                 // Mouse wheel carousel: scroll down -> next level, scroll up -> previous level.
                 if input.wheel_y < 0.0 {
-                    self.selected_level = (self.selected_level + 1).min(self.config.max_levels);
+                    self.selected_level = (self.selected_level + 1).min(self.total_levels());
                 } else if input.wheel_y > 0.0 {
                     self.selected_level = self.selected_level.saturating_sub(1).max(1);
                 }
+
+                // Keep selection in range in case levels were removed.
+                self.selected_level = self.selected_level.clamp(1, self.total_levels());
 
                 if input.enter_pressed {
                     if self.selected_level <= self.unlocked_cap() {
@@ -180,6 +188,13 @@ impl GameManager {
     }
 
     fn start_level(&mut self, level: usize) {
+        let Some(spec) = levels::get(level) else {
+            // Invalid level id; return to level select.
+            self.screen = Screen::LevelSelect;
+            self.selected_level = self.total_levels();
+            return;
+        };
+
         self.level = level as i32;
         self.pause_game(false);
 
@@ -191,7 +206,7 @@ impl GameManager {
         let bounds = self.world.bounds;
         let spawn_margin = self.config.spawn_margin;
 
-        let nomads_to_spawn = self.config.nomads_to_spawn(level);
+        let nomads_to_spawn = spec.nomads;
         for _ in 0..nomads_to_spawn {
             let pos = vec2(
                 gen_range(spawn_margin, bounds.x - spawn_margin),
@@ -200,7 +215,7 @@ impl GameManager {
             self.world.nomads.push(Nomad::new_at(pos));
         }
 
-        let animals_to_spawn = self.config.animals_to_spawn(level);
+        let animals_to_spawn = spec.animals;
         for _ in 0..animals_to_spawn {
             let pos = vec2(
                 gen_range(spawn_margin, bounds.x - spawn_margin),
@@ -213,7 +228,7 @@ impl GameManager {
                 .push(Animal::new_at(id, pos, &self.config));
         }
 
-        self.hunger = self.config.hunger_start;
+        self.hunger = spec.hunger_start;
         self.hunger_timer = 0.0;
     }
 
@@ -314,12 +329,12 @@ impl GameManager {
 
         if !self.debug {
             let current = self.level.max(1) as usize;
-            let next_unlock = (current + 1).min(self.config.max_levels);
+            let next_unlock = (current + 1).min(self.total_levels());
             self.unlocked_max_level = self.unlocked_max_level.max(next_unlock);
         }
 
         let next_level = (self.level as usize).saturating_add(1);
-        let next = if next_level <= self.config.max_levels {
+        let next = if next_level <= self.total_levels() {
             Some(next_level)
         } else {
             None
@@ -354,7 +369,7 @@ impl GameManager {
             }
             None => {
                 self.screen = Screen::LevelSelect;
-                self.selected_level = self.config.max_levels;
+                self.selected_level = self.total_levels();
                 self.pause_game(false);
                 self.command.last_command = None;
             }

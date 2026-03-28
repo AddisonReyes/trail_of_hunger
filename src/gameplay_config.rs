@@ -52,9 +52,6 @@ pub struct GamePlayConfig {
     // Level flow
     pub transition_seconds: f32,
     pub spawn_margin: f32,
-    pub max_levels: usize,
-    pub animals_per_level: usize,
-    pub extra_nomad_level: usize,
 
     // Render sizes (purely visual but handy to tweak)
     pub render_nomad_radius: f32,
@@ -104,9 +101,6 @@ impl Default for GamePlayConfig {
 
             transition_seconds: 4.0,
             spawn_margin: 20.0,
-            max_levels: 10,
-            animals_per_level: 3,
-            extra_nomad_level: 6,
 
             render_nomad_radius: 8.0,
             render_animal_radius: 6.0,
@@ -115,16 +109,4 @@ impl Default for GamePlayConfig {
     }
 }
 
-impl GamePlayConfig {
-    pub fn nomads_to_spawn(&self, level: usize) -> usize {
-        if level >= self.extra_nomad_level {
-            2
-        } else {
-            1
-        }
-    }
-
-    pub fn animals_to_spawn(&self, level: usize) -> usize {
-        self.animals_per_level * level
-    }
-}
+impl GamePlayConfig {}
