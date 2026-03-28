@@ -1,3 +1,5 @@
+use macroquad::prelude::*;
+
 use crate::assets::*;
 use crate::entities::*;
 use crate::ui::*;
@@ -15,7 +17,7 @@ pub struct GameManager {
     animals_remaining: usize,
     spawn_timer: f32,
     view: UiState,
-    pause: bool,
+    paused: bool,
     debug: bool,
     level: i32,
 }
@@ -37,7 +39,7 @@ impl GameManager {
             spawn_timer: 0.0,
             assets: assets_manager,
             debug: false,
-            pause: false,
+            paused: false,
             view: view,
             level: 1,
         };
@@ -45,8 +47,14 @@ impl GameManager {
 
     pub fn update(&mut self) {
         match self.state {
-            GameState::Playing => {}
+            GameState::Playing => {
+                self.print_data();
+            }
             GameState::GameOver => {}
+        }
+
+        if is_key_pressed(KeyCode::Escape) {
+            self.pause_game(!self.paused);
         }
 
         self.view.update();
@@ -57,7 +65,8 @@ impl GameManager {
     }
 
     pub fn pause_game(&mut self, value: bool) {
-        self.pause = value;
+        self.view.paused = value;
+        self.paused = value;
     }
 
     pub fn debug_mode(&mut self, value: bool) {
@@ -89,7 +98,7 @@ impl GameManager {
 
         println!("\tanimals_remaining: {}", self.animals_remaining);
         println!("\tspawn_timer: {}", self.spawn_timer);
-        println!("\tpause: {}", self.pause);
+        println!("\tpause: {}", self.paused);
         println!("\tdebug: {}", self.debug);
         println!("\tlevel: {}", self.level);
     }

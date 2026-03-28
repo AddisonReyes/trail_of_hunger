@@ -15,6 +15,7 @@ pub struct UiState {
     pub current_view: View,
     pub selected_level: usize,
     font: Option<Font>,
+    pub paused: bool,
 }
 
 impl UiState {
@@ -23,6 +24,7 @@ impl UiState {
             current_view: View::Menu,
             selected_level: 1,
             font: main_font,
+            paused: false,
         }
     }
 
@@ -39,7 +41,7 @@ impl UiState {
         match self.current_view {
             View::Menu => draw_menu(self.font.as_ref()),
             View::LevelSelect => draw_level_select(self.font.as_ref(), self.selected_level),
-            View::InGame => draw_ingame_ui(self.font.as_ref()),
+            View::InGame => draw_ingame_ui(self.font.as_ref(), self.paused),
             View::GameOver => draw_game_over(self.font.as_ref()),
         }
     }
@@ -69,8 +71,8 @@ impl UiState {
     }
 
     fn update_ingame(&mut self) {
-        if is_key_pressed(KeyCode::Escape) {
-            self.current_view = View::GameOver;
+        if is_key_pressed(KeyCode::Enter) && self.paused {
+            self.current_view = View::LevelSelect;
         }
     }
 
@@ -143,7 +145,7 @@ pub fn draw_level_select(main_font: Option<&Font>, selected_level: usize) {
     draw_centered_text("Press \'Enter\' to play", 280.0, main_font, 32, GRAY);
 }
 
-pub fn draw_ingame_ui(main_font: Option<&Font>) {
+pub fn draw_ingame_ui(main_font: Option<&Font>, paused: bool) {
     // No limpiamos pantalla aquí
 
     draw_text_ex(
@@ -168,6 +170,34 @@ pub fn draw_ingame_ui(main_font: Option<&Font>) {
             color: WHITE,
             ..Default::default()
         },
+    );
+
+    if !paused {
+        return;
+    }
+
+    draw_centered_text(
+        "Game paused",
+        (WINDOW_HEIGHT as f32 / 2.0) - 20.0,
+        main_font,
+        32,
+        WHITE,
+    );
+
+    draw_centered_text(
+        "Press \'Esc\' to return.",
+        (WINDOW_HEIGHT as f32 / 2.0) + 20.0,
+        main_font,
+        16,
+        GRAY,
+    );
+
+    draw_centered_text(
+        "Press \'Enter\' to return to menu",
+        (WINDOW_HEIGHT as f32 / 2.0) + 40.0,
+        main_font,
+        16,
+        GRAY,
     );
 }
 
