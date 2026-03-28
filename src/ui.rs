@@ -61,7 +61,7 @@ pub fn draw_level_select(main_font: Option<&Font>, selected_level: usize) {
         }
     }
 
-    draw_centered_text("Use arrows or WASD to change", 240.0, main_font, 16, GRAY);
+    draw_centered_text("Use Left/Right to change", 240.0, main_font, 16, GRAY);
     draw_centered_text("Press \'Enter\' to play", 280.0, main_font, 32, GRAY);
 }
 
@@ -71,8 +71,6 @@ pub fn draw_ingame_ui(
     hunger: i32,
     animals_remaining: usize,
 ) {
-    // No limpiamos pantalla aquí
-
     draw_text_ex(
         &format!("Hunger: {}", hunger),
         20.0,
@@ -110,7 +108,7 @@ pub fn draw_ingame_ui(
     );
 
     draw_centered_text(
-        "Press \'Esc\' to return.",
+        "Press \'Esc\' to resume.",
         (WINDOW_HEIGHT as f32 / 2.0) + 20.0,
         main_font,
         16,
@@ -118,7 +116,7 @@ pub fn draw_ingame_ui(
     );
 
     draw_centered_text(
-        "Press \'Enter\' to return to menu",
+        "Press \'Enter\' to level select",
         (WINDOW_HEIGHT as f32 / 2.0) + 40.0,
         main_font,
         16,
@@ -138,6 +136,50 @@ pub fn draw_game_over(main_font: Option<&Font>) {
     );
     draw_centered_text(
         "Press \'Enter\' to return to menu",
+        (WINDOW_HEIGHT as f32 / 2.0) + 20.0,
+        main_font,
+        16,
+        GRAY,
+    );
+}
+
+pub fn draw_level_complete_overlay(
+    main_font: Option<&Font>,
+    level: i32,
+    seconds_left: f32,
+    is_final: bool,
+) {
+    let overlay = Color::new(0.0, 0.0, 0.0, 0.55);
+    draw_rectangle(0.0, 0.0, WINDOW_WIDTH as f32, WINDOW_HEIGHT as f32, overlay);
+
+    if is_final {
+        draw_centered_text(
+            "You win!",
+            (WINDOW_HEIGHT as f32 / 2.0) - 20.0,
+            main_font,
+            32,
+            YELLOW,
+        );
+        draw_centered_text(
+            "Returning to level select...",
+            (WINDOW_HEIGHT as f32 / 2.0) + 20.0,
+            main_font,
+            16,
+            GRAY,
+        );
+        return;
+    }
+
+    let secs = seconds_left.ceil().max(0.0) as i32;
+    draw_centered_text(
+        &format!("Level {} complete", level),
+        (WINDOW_HEIGHT as f32 / 2.0) - 20.0,
+        main_font,
+        32,
+        YELLOW,
+    );
+    draw_centered_text(
+        &format!("Next level in {}", secs),
         (WINDOW_HEIGHT as f32 / 2.0) + 20.0,
         main_font,
         16,

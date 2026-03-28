@@ -22,7 +22,6 @@ fn window_conf() -> Conf {
 async fn main() {
     let mut game_manager = GameManager::new().await;
     game_manager.debug_mode(true);
-    // game_manager.print_data();
 
     loop {
         clear_background(BLACK);
