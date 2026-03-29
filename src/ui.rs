@@ -307,6 +307,60 @@ pub fn draw_hover_label(
     );
 }
 
+pub fn draw_hint(main_font: Option<&Font>, hint: &crate::state::UiHint) {
+    let w = screen_width();
+    let h = screen_height();
+
+    let t = (hint.ttl / hint.duration).clamp(0.0, 1.0);
+    let alpha = if t < 0.25 { t / 0.25 } else { 1.0 };
+
+    let ui_scale = ((w / WINDOW_WIDTH as f32).min(h / WINDOW_HEIGHT as f32)).clamp(0.75, 1.6);
+    let font_size = (16.0 * ui_scale) as u16;
+    let padding_x = 8.0 * ui_scale;
+    let padding_y = 6.0 * ui_scale;
+
+    let dims = measure_text(&hint.text, main_font, font_size, 1.0);
+    let mut x = hint.pos.x - dims.width * 0.5;
+    let mut y = hint.pos.y;
+
+    // Keep on-screen.
+    let bg_w = dims.width + padding_x * 2.0;
+    let bg_h = dims.height + padding_y * 2.0;
+    x = x.clamp(6.0, (w - bg_w - 6.0).max(6.0));
+    y = y.clamp(bg_h + 6.0, (h - 6.0).max(bg_h + 6.0));
+
+    let bg_x = x;
+    let bg_y = y - bg_h;
+
+    draw_rectangle(
+        bg_x,
+        bg_y,
+        bg_w,
+        bg_h,
+        Color::new(0.0, 0.0, 0.0, 0.72 * alpha),
+    );
+    draw_rectangle_lines(
+        bg_x,
+        bg_y,
+        bg_w,
+        bg_h,
+        1.0,
+        Color::new(1.0, 1.0, 1.0, 0.22 * alpha),
+    );
+
+    draw_text_ex(
+        &hint.text,
+        bg_x + padding_x,
+        bg_y + padding_y + dims.height,
+        TextParams {
+            font: main_font,
+            font_size,
+            color: Color::new(1.0, 1.0, 1.0, alpha),
+            ..Default::default()
+        },
+    );
+}
+
 fn hovered_label(
     mouse: Vec2,
     world: &World,

@@ -6,9 +6,68 @@ use crate::render::blood_layer::BloodLayer;
 use crate::state::{CommandFeedback, CommandTarget, SelectionBox};
 use crate::world::World;
 
+#[derive(Clone, Copy, Debug)]
+enum HoverKind {
+    Animal,
+    Corpse,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Hovered {
+    kind: HoverKind,
+    pos: Vec2, // world space
+}
+
+fn pick_hover(world: &World, world_mouse: Vec2, tuning: &GamePlayConfig) -> Option<Hovered> {
+    // Mirror command picking: corpse first, then animal.
+    if let Some((_id, pos)) = pick_corpse(world, world_mouse, tuning.pick_radius_corpse) {
+        return Some(Hovered {
+            kind: HoverKind::Corpse,
+            pos,
+        });
+    }
+    if let Some((_id, pos)) = pick_animal(world, world_mouse, tuning.pick_radius_animal) {
+        return Some(Hovered {
+            kind: HoverKind::Animal,
+            pos,
+        });
+    }
+    None
+}
+
+fn pick_animal(world: &World, point: Vec2, radius: f32) -> Option<(u32, Vec2)> {
+    let r2 = radius * radius;
+    let mut best: Option<(u32, Vec2, f32)> = None;
+    for a in &world.animals {
+        let pos = a.get_position();
+        let d2 = pos.distance_squared(point);
+        if d2 <= r2 && (best.is_none() || d2 < best.unwrap().2) {
+            best = Some((a.id(), pos, d2));
+        }
+    }
+    best.map(|b| (b.0, b.1))
+}
+
+fn pick_corpse(world: &World, point: Vec2, radius: f32) -> Option<(u32, Vec2)> {
+    let r2 = radius * radius;
+    let mut best: Option<(u32, Vec2, f32)> = None;
+    for c in &world.corpses {
+        if !c.available {
+            continue;
+        }
+        let pos = c.pos;
+        let d2 = pos.distance_squared(point);
+        if d2 <= r2 && (best.is_none() || d2 < best.unwrap().2) {
+            best = Some((c.id, pos, d2));
+        }
+    }
+    best.map(|b| (b.0, b.1))
+}
+
 pub fn draw_world(
     world: &World,
     blood: &BloodLayer,
+    mouse_screen: Vec2,
     selection_box: Option<SelectionBox>,
     last_command: Option<CommandFeedback>,
     tuning: &GamePlayConfig,
@@ -19,6 +78,13 @@ pub fn draw_world(
 
     let offset_y = tuning.ui_top_bar_height;
     let to_screen = |p: Vec2| vec2(p.x, p.y + offset_y);
+    let to_world_mouse = |m: Vec2| {
+        if m.y <= offset_y {
+            None
+        } else {
+            Some(vec2(m.x, m.y - offset_y))
+        }
+    };
 
     blood.draw(offset_y);
 
@@ -45,6 +111,25 @@ pub fn draw_world(
             color_u8!(196, 160, 106, 255)
         };
         draw_circle(pos.x, pos.y, tuning.render_animal_radius, color);
+    }
+
+    // Hover highlight (matches command picking priority: corpse > animal).
+    let hovered = to_world_mouse(mouse_screen)
+        .and_then(|wm| pick_hover(world, wm, tuning))
+        .map(|h| (h, to_screen(h.pos)));
+
+    if let Some((h, sp)) = hovered {
+        let (r, col) = match h.kind {
+            HoverKind::Corpse => (
+                tuning.render_corpse_radius + 6.0,
+                Color::new(1.0, 1.0, 1.0, 0.28),
+            ),
+            HoverKind::Animal => (
+                tuning.render_animal_radius + 7.0,
+                Color::new(1.0, 1.0, 1.0, 0.28),
+            ),
+        };
+        draw_circle_lines(sp.x, sp.y, r, 2.0, col);
     }
 
     for s in &world.spears {
@@ -86,6 +171,42 @@ pub fn draw_world(
             if n.order_id() == cmd.id && n.order() != crate::entities::NomadOrder::Idle {
                 let p = to_screen(n.get_position());
                 draw_line(p.x, p.y, end.x, end.y, 1.0, color_u8!(255, 255, 255, 120));
+            }
+        }
+
+        // Target highlight: small pulse around the command target.
+        let t = get_time() as f32;
+        match cmd.target {
+            CommandTarget::Point(p) => {
+                let sp = to_screen(p);
+                let pulse = 1.5 + (t * 7.0).sin() * 1.2;
+                draw_circle_lines(sp.x, sp.y, 10.0 + pulse, 2.0, Color::new(1.0, 1.0, 1.0, 0.22));
+            }
+            CommandTarget::Animal(id) => {
+                if let Some(a) = world.animals.iter().find(|a| a.id() == id) {
+                    let sp = to_screen(a.get_position());
+                    let pulse = 2.0 + (t * 7.0).sin() * 1.4;
+                    draw_circle_lines(
+                        sp.x,
+                        sp.y,
+                        tuning.render_animal_radius + 9.0 + pulse,
+                        2.0,
+                        Color::new(1.0, 1.0, 1.0, 0.22),
+                    );
+                }
+            }
+            CommandTarget::Corpse(id) => {
+                if let Some(c) = world.corpses.iter().find(|c| c.id == id) {
+                    let sp = to_screen(c.pos);
+                    let pulse = 2.0 + (t * 7.0).sin() * 1.4;
+                    draw_circle_lines(
+                        sp.x,
+                        sp.y,
+                        tuning.render_corpse_radius + 9.0 + pulse,
+                        2.0,
+                        Color::new(1.0, 1.0, 1.0, 0.20),
+                    );
+                }
             }
         }
     }

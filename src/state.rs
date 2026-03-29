@@ -26,6 +26,14 @@ pub struct CommandState {
     pub next_command_id: u32,
 }
 
+#[derive(Debug, Clone)]
+pub struct UiHint {
+    pub text: String,
+    pub pos: Vec2, // screen space
+    pub ttl: f32,
+    pub duration: f32,
+}
+
 impl Default for CommandState {
     fn default() -> Self {
         Self {

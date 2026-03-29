@@ -7,7 +7,7 @@ use crate::gameplay_config::GamePlayConfig;
 use crate::gameplay_config::{WINDOW_HEIGHT, WINDOW_WIDTH};
 use crate::input::InputState;
 use crate::levels;
-use crate::state::{CommandState, SelectionBox};
+use crate::state::{CommandState, SelectionBox, UiHint};
 use crate::world::World;
 use crate::{render, systems, ui};
 use crate::render::blood_layer::BloodLayer;
@@ -51,6 +51,8 @@ pub struct GameManager {
     last_mouse: Vec2,
 
     level_animals_total: usize,
+
+    ui_hint: Option<UiHint>,
 }
 
 impl GameManager {
@@ -79,6 +81,8 @@ impl GameManager {
             level: 1,
             last_mouse: vec2(0.0, 0.0),
             level_animals_total: 0,
+
+            ui_hint: None,
         }
     }
 
@@ -95,7 +99,10 @@ impl GameManager {
     }
 
     pub fn update(&mut self, input: &InputState) {
+        let dt = get_frame_time();
+
         self.last_mouse = input.mouse;
+        self.tick_hint(dt);
         self.update_screen(input);
 
         if self.screen == Screen::InGame && !self.paused {
@@ -120,6 +127,7 @@ impl GameManager {
                 render::world::draw_world(
                     &self.world,
                     &self.blood_layer,
+                    self.last_mouse,
                     self.selection_box,
                     self.command.last_command,
                     &self.active_config,
@@ -157,6 +165,31 @@ impl GameManager {
             }
             Screen::GameOver => ui::draw_game_over(self.assets.main_font.as_ref()),
         }
+
+        if let Some(h) = &self.ui_hint {
+            ui::draw_hint(self.assets.main_font.as_ref(), h);
+        }
+    }
+
+    fn set_hint(&mut self, text: impl Into<String>, pos: Vec2, duration: f32) {
+        let duration = duration.max(0.05);
+        self.ui_hint = Some(UiHint {
+            text: text.into(),
+            pos,
+            ttl: duration,
+            duration,
+        });
+    }
+
+    fn tick_hint(&mut self, dt: f32) {
+        let Some(h) = &mut self.ui_hint else {
+            return;
+        };
+
+        h.ttl -= dt;
+        if h.ttl <= 0.0 {
+            self.ui_hint = None;
+        }
     }
 
     pub fn pause_game(&mut self, value: bool) {
@@ -186,9 +219,23 @@ impl GameManager {
                 // Keep selection in range in case levels were removed.
                 self.selected_level = self.selected_level.clamp(1, self.total_levels());
 
-                if input.enter_pressed && self.selected_level <= self.unlocked_cap() {
-                    self.start_level(self.selected_level);
-                    self.screen = Screen::InGame;
+                if input.enter_pressed {
+                    if self.selected_level <= self.unlocked_cap() {
+                        self.start_level(self.selected_level);
+                        self.screen = Screen::InGame;
+                    } else {
+                        let w = screen_width();
+                        let h = screen_height();
+                        let ui_scale = ((w / WINDOW_WIDTH as f32)
+                            .min(h / WINDOW_HEIGHT as f32))
+                        .clamp(0.75, 1.6);
+                        let base_y = h * 0.50;
+                        self.set_hint(
+                            "Locked. Beat earlier levels.",
+                            vec2(w * 0.5, base_y - 62.0 * ui_scale),
+                            1.2,
+                        );
+                    }
                 }
 
                 if input.escape_pressed {
@@ -302,6 +349,15 @@ impl GameManager {
             &mut self.selection_box,
             &self.active_config,
         );
+
+        // Light feedback when issuing commands without any selection.
+        if self.level_transition.is_none()
+            && winput.right_pressed
+            && !self.world.nomads.iter().any(|n| n.is_selected())
+        {
+            self.set_hint("Select a nomad first", self.last_mouse, 1.0);
+        }
+
         if self.level_transition.is_none() {
             systems::commands::update(
                 &winput,

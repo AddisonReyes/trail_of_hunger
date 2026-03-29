@@ -36,12 +36,13 @@ pub fn update(dt: f32, world: &mut World, tuning: &GamePlayConfig) {
                     // 20% chance: a lethal hit doesn't kill, but wounds the animal.
                     // Only happens once per animal.
                     let mut wounded_instead_of_dead = false;
-                    if world.animals[ai].is_dead() && !world.animals[ai].is_wounded() {
-                        if gen_range(0.0, 1.0) < tuning.animal_wound_survive_chance {
-                            world.animals[ai].set_hp(1);
-                            world.animals[ai].wound(tuning);
-                            wounded_instead_of_dead = true;
-                        }
+                    if world.animals[ai].is_dead()
+                        && !world.animals[ai].is_wounded()
+                        && gen_range(0.0, 1.0) < tuning.animal_wound_survive_chance
+                    {
+                        world.animals[ai].set_hp(1);
+                        world.animals[ai].wound(tuning);
+                        wounded_instead_of_dead = true;
                     }
 
                     if world.animals[ai].is_dead() && !wounded_instead_of_dead {
