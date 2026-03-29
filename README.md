@@ -36,6 +36,12 @@ sudo apt install mingw-w64
 cargo build --target x86_64-pc-windows-gnu --release
 ```
 
+## Credits
+
+Song: "wait at the baja lake with the otter" by Calamity.chr (<a href="https://freesound.org/people/Calamity.chr/sounds/621237/">Link</a>)
+
+Sound effects created with <a href="https://sfxr.me/">jsfxr</a>
+
 ## Notes
 
 - Made for a <a href="https://itch.io/jam/mini-jam-207-primal">Mini Jam 207: Primal</a>.

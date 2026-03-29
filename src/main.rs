@@ -28,7 +28,7 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut game_manager = GameManager::new().await;
-    // game_manager.debug_mode(true);
+    game_manager.debug_mode(true);
 
     loop {
         clear_background(BLACK);
