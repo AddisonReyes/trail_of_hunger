@@ -81,6 +81,21 @@ pub struct GamePlayConfig {
     pub animal_flee_timer_min: f32,
     pub animal_flee_timer_max: f32,
 
+    // Animal "wound" flavor
+    pub animal_wound_survive_chance: f32,
+    pub animal_wounded_speed_mult: f32,
+    pub animal_wounded_stutter_interval_min: f32,
+    pub animal_wounded_stutter_interval_max: f32,
+    pub animal_wounded_stutter_duration_min: f32,
+    pub animal_wounded_stutter_duration_max: f32,
+    pub animal_wounded_stutter_speed_mult: f32,
+    pub animal_wounded_min_speed: f32,
+
+    // Blood trail (subtle)
+    pub blood_drop_interval_min: f32,
+    pub blood_drop_interval_max: f32,
+    pub blood_drop_radius: f32,
+
     // Level flow
     pub transition_seconds: f32,
     pub spawn_margin: f32,
@@ -132,6 +147,19 @@ impl Default for GamePlayConfig {
             animal_flee_speed_max: 110.0,
             animal_flee_timer_min: 0.2,
             animal_flee_timer_max: 0.6,
+
+            animal_wound_survive_chance: 0.20,
+            animal_wounded_speed_mult: 0.65,
+            animal_wounded_stutter_interval_min: 0.9,
+            animal_wounded_stutter_interval_max: 1.9,
+            animal_wounded_stutter_duration_min: 0.07,
+            animal_wounded_stutter_duration_max: 0.16,
+            animal_wounded_stutter_speed_mult: 0.80,
+            animal_wounded_min_speed: 4.0,
+
+            blood_drop_interval_min: 0.10,
+            blood_drop_interval_max: 0.16,
+            blood_drop_radius: 2.6,
 
             transition_seconds: 4.0,
             spawn_margin: 20.0,

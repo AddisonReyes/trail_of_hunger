@@ -1,6 +1,6 @@
 # Trail of Hunger
 
-Top-down 2D game (macroquad) where you control a group of nomads to hunt and exhaust the ecosystem in each level.
+Top-down 2D game where you control a group of nomads to hunt and exhaust the ecosystem in each level.
 
 ## Goal
 

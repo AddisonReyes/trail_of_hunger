@@ -2,11 +2,13 @@ use macroquad::prelude::*;
 
 use crate::gameplay_config::GamePlayConfig;
 use crate::gameplay_config::{WINDOW_HEIGHT, WINDOW_WIDTH};
+use crate::render::blood_layer::BloodLayer;
 use crate::state::{CommandFeedback, CommandTarget, SelectionBox};
 use crate::world::World;
 
 pub fn draw_world(
     world: &World,
+    blood: &BloodLayer,
     selection_box: Option<SelectionBox>,
     last_command: Option<CommandFeedback>,
     tuning: &GamePlayConfig,
@@ -17,6 +19,8 @@ pub fn draw_world(
 
     let offset_y = tuning.ui_top_bar_height;
     let to_screen = |p: Vec2| vec2(p.x, p.y + offset_y);
+
+    blood.draw(offset_y);
 
     if level == 1 {
         draw_level1_tutorial(world, main_font, offset_y);
@@ -34,12 +38,13 @@ pub fn draw_world(
 
     for a in &world.animals {
         let pos = to_screen(a.get_position());
-        draw_circle(
-            pos.x,
-            pos.y,
-            tuning.render_animal_radius,
-            color_u8!(196, 160, 106, 255),
-        );
+        let color = if a.is_wounded() {
+            // Slightly more reddish to convey injury.
+            color_u8!(196, 136, 110, 255)
+        } else {
+            color_u8!(196, 160, 106, 255)
+        };
+        draw_circle(pos.x, pos.y, tuning.render_animal_radius, color);
     }
 
     for s in &world.spears {

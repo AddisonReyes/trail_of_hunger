@@ -134,6 +134,11 @@ pub struct Animal {
     velocity: Vec2,
     wander_timer: f32,
     hp: i32,
+
+    wounded: bool,
+    bleed_cd: f32,
+    stutter_cd: f32,
+    stutter_t: f32,
 }
 
 impl Animal {
@@ -151,6 +156,17 @@ impl Animal {
                 tuning.animal_wander_timer_init_max,
             ),
             hp: 1,
+
+            wounded: false,
+            bleed_cd: gen_range(
+                tuning.blood_drop_interval_min,
+                tuning.blood_drop_interval_max,
+            ),
+            stutter_cd: gen_range(
+                tuning.animal_wounded_stutter_interval_min,
+                tuning.animal_wounded_stutter_interval_max,
+            ),
+            stutter_t: 0.0,
         }
     }
 
@@ -162,8 +178,55 @@ impl Animal {
         self.hp <= 0
     }
 
+    pub fn set_hp(&mut self, hp: i32) {
+        self.hp = hp;
+    }
+
     pub fn take_damage(&mut self, amount: i32) {
         self.hp -= amount;
+    }
+
+    pub fn is_wounded(&self) -> bool {
+        self.wounded
+    }
+
+    pub fn wound(&mut self, tuning: &GamePlayConfig) {
+        self.wounded = true;
+
+        // Start bleeding quickly so the first drop appears soon.
+        self.bleed_cd = gen_range(
+            tuning.blood_drop_interval_min * 0.25,
+            tuning.blood_drop_interval_max * 0.5,
+        );
+
+        // First stutter happens after a short delay.
+        self.stutter_cd = gen_range(
+            tuning.animal_wounded_stutter_interval_min,
+            tuning.animal_wounded_stutter_interval_max,
+        );
+        self.stutter_t = 0.0;
+    }
+
+    pub fn tick_bleed(&mut self, dt: f32, tuning: &GamePlayConfig) -> Option<Vec2> {
+        if !self.wounded {
+            return None;
+        }
+
+        // Only leave a trail while moving (subtle, avoids puddling when stopped).
+        if self.velocity.length_squared() <= 1.0 {
+            return None;
+        }
+
+        self.bleed_cd -= dt;
+        if self.bleed_cd > 0.0 {
+            return None;
+        }
+
+        self.bleed_cd = gen_range(
+            tuning.blood_drop_interval_min,
+            tuning.blood_drop_interval_max,
+        );
+        Some(self.position)
     }
 
     pub fn get_position(&self) -> Vec2 {
@@ -206,6 +269,44 @@ impl Animal {
                         tuning.animal_wander_speed_min,
                         tuning.animal_wander_speed_max,
                     );
+            }
+        }
+
+        if self.wounded {
+            // Occasional brief stops to signal weakness (guilt-inducing, but not slapstick).
+            self.stutter_t = (self.stutter_t - dt).max(0.0);
+            if self.stutter_t <= 0.0 {
+                self.stutter_cd -= dt;
+                if self.stutter_cd <= 0.0 {
+                    self.stutter_t = gen_range(
+                        tuning.animal_wounded_stutter_duration_min,
+                        tuning.animal_wounded_stutter_duration_max,
+                    );
+                    self.stutter_cd = gen_range(
+                        tuning.animal_wounded_stutter_interval_min,
+                        tuning.animal_wounded_stutter_interval_max,
+                    );
+                }
+            }
+
+            let mut speed_mult = tuning.animal_wounded_speed_mult;
+            if self.stutter_t > 0.0 {
+                speed_mult *= tuning.animal_wounded_stutter_speed_mult;
+            }
+            self.velocity *= speed_mult;
+
+            // Ensure wounded animals keep moving (no full stops / no near-zero crawl).
+            let min_speed = tuning.animal_wounded_min_speed.max(0.0);
+            if min_speed > 0.0 {
+                let len = self.velocity.length();
+                if len < min_speed {
+                    let dir = if len > 0.0001 {
+                        self.velocity / len
+                    } else {
+                        random_unit_vec2()
+                    };
+                    self.velocity = dir * min_speed;
+                }
             }
         }
 

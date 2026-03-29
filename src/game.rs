@@ -10,6 +10,7 @@ use crate::levels;
 use crate::state::{CommandState, SelectionBox};
 use crate::world::World;
 use crate::{render, systems, ui};
+use crate::render::blood_layer::BloodLayer;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Screen {
@@ -29,6 +30,7 @@ pub struct GameManager {
     assets: Assets,
     screen: Screen,
     world: World,
+    blood_layer: BloodLayer,
     config: GamePlayConfig,
     active_config: GamePlayConfig,
 
@@ -62,6 +64,7 @@ impl GameManager {
             assets,
             screen: Screen::Menu,
             world: World::new(bounds),
+            blood_layer: BloodLayer::new(bounds.x as u32, bounds.y as u32),
             config,
             active_config: config,
             unlocked_max_level: 1,
@@ -116,6 +119,7 @@ impl GameManager {
             Screen::InGame => {
                 render::world::draw_world(
                     &self.world,
+                    &self.blood_layer,
                     self.selection_box,
                     self.command.last_command,
                     &self.active_config,
@@ -233,6 +237,12 @@ impl GameManager {
 
         self.active_config = self.config.apply_overrides(spec.overrides);
 
+        let playfield_h = (WINDOW_HEIGHT as f32 - self.active_config.ui_top_bar_height).max(1.0);
+        self.world.bounds = vec2(WINDOW_WIDTH as f32, playfield_h);
+        self.blood_layer
+            .ensure_size(self.world.bounds.x as u32, self.world.bounds.y as u32);
+        self.blood_layer.reset();
+
         self.level_animals_total = spec.animals;
 
         self.world.clear_entities();
@@ -302,7 +312,7 @@ impl GameManager {
         }
 
         systems::nomads::update(dt, &mut self.world, &mut self.hunger, &self.active_config);
-        systems::animals::update(dt, &mut self.world, &self.active_config);
+        systems::animals::update(dt, &mut self.world, &self.active_config, &mut self.blood_layer);
         systems::spears::update(dt, &mut self.world, &self.active_config);
         systems::commands::update_feedback(&self.world, &mut self.command);
 
