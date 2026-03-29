@@ -14,6 +14,7 @@ pub struct Spear {
     pub pos: Vec2,
     pub vel: Vec2,
     pub ttl: f32,
+    pub owner_nomad: Option<usize>,
 }
 
 pub struct World {

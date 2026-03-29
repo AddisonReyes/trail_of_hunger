@@ -30,6 +30,7 @@ pub struct GameManager {
     screen: Screen,
     world: World,
     config: GamePlayConfig,
+    active_config: GamePlayConfig,
 
     unlocked_max_level: usize,
 
@@ -62,6 +63,7 @@ impl GameManager {
             screen: Screen::Menu,
             world: World::new(bounds),
             config,
+            active_config: config,
             unlocked_max_level: 1,
             selection_box: None,
             command: CommandState::default(),
@@ -116,7 +118,7 @@ impl GameManager {
                     &self.world,
                     self.selection_box,
                     self.command.last_command,
-                    &self.config,
+                    &self.active_config,
                     self.assets.main_font.as_ref(),
                     self.level,
                 );
@@ -129,7 +131,7 @@ impl GameManager {
                     self.hunger,
                     self.world.animals.len(),
                     self.level_animals_total,
-                    &self.config,
+                    &self.active_config,
                 );
 
                 if let Some(t) = self.level_transition {
@@ -145,7 +147,7 @@ impl GameManager {
                         self.last_mouse,
                         &self.world,
                         selected_nomads,
-                        &self.config,
+                        &self.active_config,
                     );
                 }
             }
@@ -180,11 +182,9 @@ impl GameManager {
                 // Keep selection in range in case levels were removed.
                 self.selected_level = self.selected_level.clamp(1, self.total_levels());
 
-                if input.enter_pressed {
-                    if self.selected_level <= self.unlocked_cap() {
-                        self.start_level(self.selected_level);
-                        self.screen = Screen::InGame;
-                    }
+                if input.enter_pressed && self.selected_level <= self.unlocked_cap() {
+                    self.start_level(self.selected_level);
+                    self.screen = Screen::InGame;
                 }
 
                 if input.escape_pressed {
@@ -215,11 +215,14 @@ impl GameManager {
             self.screen = Screen::LevelSelect;
             self.selected_level = self.total_levels();
             self.level_animals_total = 0;
+            self.active_config = self.config;
             return;
         };
 
         self.level = level as i32;
         self.pause_game(false);
+
+        self.active_config = self.config.apply_overrides(spec.overrides);
 
         self.level_animals_total = spec.animals;
 
@@ -250,7 +253,7 @@ impl GameManager {
             self.world.next_animal_id += 1;
             self.world
                 .animals
-                .push(Animal::new_at(id, pos, &self.config));
+                .push(Animal::new_at(id, pos, &self.active_config));
         }
 
         self.hunger = spec.hunger_start;
@@ -263,7 +266,7 @@ impl GameManager {
         // Convert screen mouse -> world mouse (playfield space).
         // Also prevent clicks from going through the top bar.
         let mut winput = *input;
-        let bar_h = self.config.ui_top_bar_height;
+        let bar_h = self.active_config.ui_top_bar_height;
         if winput.mouse.y <= bar_h {
             // Block starting new interactions on the top bar, but allow drag/release
             // to finish if the player moved the mouse into the bar mid-drag.
@@ -278,15 +281,20 @@ impl GameManager {
             &winput,
             &mut self.world,
             &mut self.selection_box,
-            &self.config,
+            &self.active_config,
         );
         if self.level_transition.is_none() {
-            systems::commands::update(&winput, &mut self.world, &mut self.command, &self.config);
+            systems::commands::update(
+                &winput,
+                &mut self.world,
+                &mut self.command,
+                &self.active_config,
+            );
         }
 
-        systems::nomads::update(dt, &mut self.world, &mut self.hunger, &self.config);
-        systems::animals::update(dt, &mut self.world, &self.config);
-        systems::spears::update(dt, &mut self.world, &self.config);
+        systems::nomads::update(dt, &mut self.world, &mut self.hunger, &self.active_config);
+        systems::animals::update(dt, &mut self.world, &self.active_config);
+        systems::spears::update(dt, &mut self.world, &self.active_config);
         systems::commands::update_feedback(&self.world, &mut self.command);
 
         if self.level_transition.is_none() && self.world.animals.is_empty() {

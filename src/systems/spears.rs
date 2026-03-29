@@ -44,8 +44,16 @@ pub fn update(dt: f32, world: &mut World, tuning: &GamePlayConfig) {
                             available: true,
                         });
 
-                        for n in &mut world.nomads {
-                            if n.order() == NomadOrder::Hunt(animal_id) {
+                        // Auto-eat: the nomad who fired the killing spear switches to Eat.
+                        let owner = s.owner_nomad;
+                        for (ni, n) in world.nomads.iter_mut().enumerate() {
+                            if n.order() != NomadOrder::Hunt(animal_id) {
+                                continue;
+                            }
+
+                            if owner == Some(ni) {
+                                n.set_order(NomadOrder::Eat(corpse_id));
+                            } else {
                                 n.set_order(NomadOrder::Idle);
                             }
                         }

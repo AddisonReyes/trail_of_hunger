@@ -9,7 +9,7 @@ pub fn update(dt: f32, world: &mut World, hunger: &mut i32, tuning: &GamePlayCon
     let bounds = world.bounds;
     let nomad_radius = tuning.render_nomad_radius;
 
-    for n in &mut world.nomads {
+    for (nomad_index, n) in world.nomads.iter_mut().enumerate() {
         n.tick_attack_cd(dt);
 
         match n.order() {
@@ -49,6 +49,7 @@ pub fn update(dt: f32, world: &mut World, hunger: &mut i32, tuning: &GamePlayCon
                             pos: n.get_position(),
                             vel: dir * tuning.spear_speed,
                             ttl: tuning.spear_ttl,
+                            owner_nomad: Some(nomad_index),
                         });
                         n.reset_attack_cd(tuning.nomad_spear_cooldown);
                     }

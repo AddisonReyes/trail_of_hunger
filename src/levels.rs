@@ -1,8 +1,11 @@
+use crate::gameplay_config::{LevelOverrides, NO_OVERRIDES};
+
 #[derive(Clone, Copy, Debug)]
 pub struct LevelSpec {
     pub nomads: usize,
     pub animals: usize,
     pub hunger_start: i32,
+    pub overrides: LevelOverrides,
 }
 
 // Edit this table to add/remove levels.
@@ -12,51 +15,102 @@ pub const LEVELS: &[LevelSpec] = &[
         nomads: 1,
         animals: 3,
         hunger_start: 50,
+        overrides: LevelOverrides {
+            animal_flee_radius: Some(55.0),
+            animal_flee_speed_base: Some(75.0),
+            animal_flee_speed_max: Some(105.0),
+            ..NO_OVERRIDES
+        },
     },
     LevelSpec {
         nomads: 1,
         animals: 6,
         hunger_start: 50,
+        overrides: LevelOverrides {
+            animal_flee_radius: Some(58.0),
+            animal_flee_speed_max: Some(110.0),
+            ..NO_OVERRIDES
+        },
     },
     LevelSpec {
         nomads: 1,
         animals: 9,
         hunger_start: 50,
+        overrides: LevelOverrides {
+            animal_flee_radius: Some(60.0),
+            animal_flee_speed_max: Some(115.0),
+            ..NO_OVERRIDES
+        },
     },
     LevelSpec {
         nomads: 1,
         animals: 12,
         hunger_start: 50,
+        overrides: LevelOverrides {
+            animal_flee_radius: Some(62.0),
+            animal_flee_speed_max: Some(120.0),
+            ..NO_OVERRIDES
+        },
     },
     LevelSpec {
         nomads: 1,
         animals: 15,
         hunger_start: 50,
+        overrides: LevelOverrides {
+            animal_flee_radius: Some(66.0),
+            animal_flee_speed_max: Some(125.0),
+            ..NO_OVERRIDES
+        },
     },
     LevelSpec {
         nomads: 2,
         animals: 18,
         hunger_start: 50,
+        overrides: LevelOverrides {
+            animal_flee_radius: Some(70.0),
+            animal_flee_speed_max: Some(132.0),
+            ..NO_OVERRIDES
+        },
     },
     LevelSpec {
         nomads: 2,
         animals: 21,
         hunger_start: 50,
+        overrides: LevelOverrides {
+            animal_flee_radius: Some(74.0),
+            animal_flee_speed_max: Some(138.0),
+            ..NO_OVERRIDES
+        },
     },
     LevelSpec {
         nomads: 2,
         animals: 24,
         hunger_start: 50,
+        overrides: LevelOverrides {
+            animal_flee_radius: Some(78.0),
+            animal_flee_speed_max: Some(144.0),
+            ..NO_OVERRIDES
+        },
     },
     LevelSpec {
         nomads: 2,
         animals: 27,
         hunger_start: 50,
+        overrides: LevelOverrides {
+            animal_flee_radius: Some(82.0),
+            animal_flee_speed_max: Some(150.0),
+            ..NO_OVERRIDES
+        },
     },
     LevelSpec {
         nomads: 2,
         animals: 30,
         hunger_start: 50,
+        overrides: LevelOverrides {
+            animal_flee_radius: Some(86.0),
+            animal_flee_speed_max: Some(158.0),
+            ..NO_OVERRIDES
+        },
     },
 ];
 

@@ -4,6 +4,35 @@ pub const WINDOW_HEIGHT: i32 = 600;
 
 pub const FONT_PATH: &str = "assets/fonts/alagard.ttf";
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct LevelOverrides {
+    pub hunger_tick_seconds: Option<f32>,
+    pub eat_gain_min: Option<i32>,
+    pub eat_gain_max: Option<i32>,
+
+    pub animal_wander_speed_min: Option<f32>,
+    pub animal_wander_speed_max: Option<f32>,
+    pub animal_flee_radius: Option<f32>,
+    pub animal_flee_speed_base: Option<f32>,
+    pub animal_flee_speed_max: Option<f32>,
+    pub animal_flee_timer_min: Option<f32>,
+    pub animal_flee_timer_max: Option<f32>,
+}
+
+pub const NO_OVERRIDES: LevelOverrides = LevelOverrides {
+    hunger_tick_seconds: None,
+    eat_gain_min: None,
+    eat_gain_max: None,
+
+    animal_wander_speed_min: None,
+    animal_wander_speed_max: None,
+    animal_flee_radius: None,
+    animal_flee_speed_base: None,
+    animal_flee_speed_max: None,
+    animal_flee_timer_min: None,
+    animal_flee_timer_max: None,
+};
+
 #[derive(Clone, Copy, Debug)]
 pub struct GamePlayConfig {
     // UI
@@ -111,6 +140,48 @@ impl Default for GamePlayConfig {
             render_animal_radius: 6.0,
             render_corpse_radius: 7.0,
         }
+    }
+}
+
+impl GamePlayConfig {
+    pub fn apply_overrides(&self, ov: LevelOverrides) -> Self {
+        let mut cfg = *self;
+
+        if let Some(v) = ov.hunger_tick_seconds {
+            cfg.hunger_tick_seconds = v;
+        }
+        if let Some(v) = ov.eat_gain_min {
+            cfg.eat_gain_min = v;
+        }
+        if let Some(v) = ov.eat_gain_max {
+            cfg.eat_gain_max = v;
+        }
+
+        if let Some(v) = ov.animal_wander_speed_min {
+            cfg.animal_wander_speed_min = v;
+        }
+        if let Some(v) = ov.animal_wander_speed_max {
+            cfg.animal_wander_speed_max = v;
+        }
+
+        if let Some(v) = ov.animal_flee_radius {
+            cfg.animal_flee_radius = v;
+        }
+        if let Some(v) = ov.animal_flee_speed_base {
+            cfg.animal_flee_speed_base = v;
+        }
+        if let Some(v) = ov.animal_flee_speed_max {
+            cfg.animal_flee_speed_max = v;
+        }
+
+        if let Some(v) = ov.animal_flee_timer_min {
+            cfg.animal_flee_timer_min = v;
+        }
+        if let Some(v) = ov.animal_flee_timer_max {
+            cfg.animal_flee_timer_max = v;
+        }
+
+        cfg
     }
 }
 
