@@ -22,16 +22,6 @@ pub fn draw_world(
         draw_level1_tutorial(world, main_font, offset_y);
     }
 
-    for a in &world.animals {
-        let pos = to_screen(a.get_position());
-        draw_circle(
-            pos.x,
-            pos.y,
-            tuning.render_animal_radius,
-            color_u8!(196, 160, 106, 255),
-        );
-    }
-
     for c in &world.corpses {
         let pos = to_screen(c.pos);
         let color = if c.available {
@@ -40,6 +30,16 @@ pub fn draw_world(
             color_u8!(90, 70, 70, 255)
         };
         draw_circle(pos.x, pos.y, tuning.render_corpse_radius, color);
+    }
+
+    for a in &world.animals {
+        let pos = to_screen(a.get_position());
+        draw_circle(
+            pos.x,
+            pos.y,
+            tuning.render_animal_radius,
+            color_u8!(196, 160, 106, 255),
+        );
     }
 
     for s in &world.spears {

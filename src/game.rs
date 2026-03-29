@@ -203,6 +203,15 @@ impl GameManager {
             }
             Screen::GameOver => {
                 if input.enter_pressed {
+                    let lvl = (self.level.max(1) as usize).clamp(1, self.total_levels());
+                    self.selected_level = lvl;
+                    self.start_level(lvl);
+                    self.screen = Screen::InGame;
+                }
+
+                if input.escape_pressed {
+                    let lvl = (self.level.max(1) as usize).clamp(1, self.total_levels());
+                    self.selected_level = lvl;
                     self.screen = Screen::Menu;
                 }
             }

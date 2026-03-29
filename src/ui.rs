@@ -363,21 +363,31 @@ fn draw_bar(x: f32, y: f32, w: f32, h: f32, pct: f32, fill: Color) {
 }
 
 pub fn draw_game_over(main_font: Option<&Font>) {
+    let w = screen_width();
+    let h = screen_height();
+    let ui_scale = ((w / WINDOW_WIDTH as f32).min(h / WINDOW_HEIGHT as f32)).clamp(0.75, 1.6);
+
     clear_background(BLACK);
 
     draw_centered_text(
         "Game Over",
-        (WINDOW_HEIGHT as f32 / 2.0) - 20.0,
+        h * 0.46,
         main_font,
-        32,
+        (32.0 * ui_scale) as u16,
         RED,
     );
-
     draw_centered_text(
-        "Press \'Enter\' to return to menu",
-        (WINDOW_HEIGHT as f32 / 2.0) + 20.0,
+        "Press \'Enter\' to retry",
+        h * 0.56,
         main_font,
-        16,
+        (18.0 * ui_scale) as u16,
+        GRAY,
+    );
+    draw_centered_text(
+        "Press \'Esc\' to return to menu",
+        h * 0.62,
+        main_font,
+        (16.0 * ui_scale) as u16,
         GRAY,
     );
 }
