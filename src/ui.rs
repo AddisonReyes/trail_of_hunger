@@ -479,7 +479,7 @@ pub fn draw_level_complete_overlay(
 
     let secs = seconds_left.ceil().max(0.0) as i32;
     draw_centered_text(
-        &format!("Level {} complete", level),
+        &format!("Level {} completed", level),
         h * 0.47,
         main_font,
         (32.0 * ui_scale) as u16,

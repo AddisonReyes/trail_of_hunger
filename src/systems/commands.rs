@@ -11,13 +11,13 @@ pub fn update(
     world: &mut World,
     cmd: &mut CommandState,
     tuning: &GamePlayConfig,
-) {
+) -> bool {
     if !input.right_pressed {
-        return;
+        return false;
     }
 
     if !world.nomads.iter().any(|n| n.is_selected()) {
-        return;
+        return false;
     }
 
     let mouse = input.mouse;
@@ -38,7 +38,7 @@ pub fn update(
             click_pos: mouse,
             target: CommandTarget::Corpse(corpse_id),
         });
-        return;
+        return true;
     }
 
     if let Some(animal_id) = pick_animal_id(world, mouse, tuning.pick_radius_animal) {
@@ -54,7 +54,7 @@ pub fn update(
             click_pos: mouse,
             target: CommandTarget::Animal(animal_id),
         });
-        return;
+        return true;
     }
 
     for n in &mut world.nomads {
@@ -69,6 +69,8 @@ pub fn update(
         click_pos: mouse,
         target: CommandTarget::Point(mouse),
     });
+
+    true
 }
 
 pub fn update_feedback(world: &World, cmd: &mut CommandState) {

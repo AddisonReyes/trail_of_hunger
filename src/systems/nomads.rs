@@ -5,9 +5,11 @@ use crate::entities::NomadOrder;
 use crate::gameplay_config::GamePlayConfig;
 use crate::world::{Spear, World};
 
-pub fn update(dt: f32, world: &mut World, hunger: &mut i32, tuning: &GamePlayConfig) {
+pub fn update(dt: f32, world: &mut World, hunger: &mut i32, tuning: &GamePlayConfig) -> u32 {
     let bounds = world.bounds;
     let nomad_radius = tuning.render_nomad_radius;
+
+    let mut eats = 0_u32;
 
     for (nomad_index, n) in world.nomads.iter_mut().enumerate() {
         n.tick_attack_cd(dt);
@@ -81,6 +83,7 @@ pub fn update(dt: f32, world: &mut World, hunger: &mut i32, tuning: &GamePlayCon
                     c.available = false;
                     let gain = gen_range(tuning.eat_gain_min, tuning.eat_gain_max);
                     *hunger = (*hunger + gain).clamp(0, tuning.hunger_max);
+                    eats += 1;
                 }
 
                 n.set_order(NomadOrder::Idle);
@@ -89,6 +92,8 @@ pub fn update(dt: f32, world: &mut World, hunger: &mut i32, tuning: &GamePlayCon
     }
 
     resolve_nomad_collisions(world, tuning);
+
+    eats
 }
 
 fn resolve_nomad_collisions(world: &mut World, cfg: &GamePlayConfig) {

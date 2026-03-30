@@ -3,17 +3,27 @@ use crate::input::InputState;
 use crate::state::SelectionBox;
 use crate::world::World;
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SelectionResult {
+    pub changed: bool,
+    // True when the selection action resulted in at least one nomad being selected.
+    // Used to gate selection SFX.
+    pub selected: bool,
+}
+
 pub fn update(
     input: &InputState,
     world: &mut World,
     selection_box: &mut Option<SelectionBox>,
     tuning: &GamePlayConfig,
-) {
+) -> SelectionResult {
     let nomad_select_radius = tuning.selection_nomad_radius;
     let drag_threshold = tuning.selection_drag_threshold;
 
     let mouse = input.mouse;
     let shift = input.shift_down;
+
+    let mut result = SelectionResult::default();
 
     if input.left_pressed {
         *selection_box = Some(SelectionBox {
@@ -29,11 +39,11 @@ pub fn update(
     }
 
     if !input.left_released {
-        return;
+        return result;
     }
 
     let Some(b) = selection_box.take() else {
-        return;
+        return result;
     };
 
     let drag = (b.current - b.start).length();
@@ -52,24 +62,43 @@ pub fn update(
         match best_idx {
             Some(i) => {
                 if shift {
+                    // Toggle is always a real change.
+                    let was = world.nomads[i].is_selected();
                     world.nomads[i].toggle_selected();
+                    result.changed = true;
+                    result.selected = !was && world.nomads[i].is_selected();
                 } else {
                     for n in &mut world.nomads {
-                        n.set_selected(false);
+                        if n.is_selected() {
+                            n.set_selected(false);
+                            result.changed = true;
+                        }
                     }
-                    world.nomads[i].set_selected(true);
+
+                    if !world.nomads[i].is_selected() {
+                        world.nomads[i].set_selected(true);
+                        result.changed = true;
+                    }
+
+                    // If we clicked a nomad and anything changed, treat as a selection action.
+                    if result.changed {
+                        result.selected = true;
+                    }
                 }
             }
             None => {
                 if !shift {
                     for n in &mut world.nomads {
-                        n.set_selected(false);
+                        if n.is_selected() {
+                            n.set_selected(false);
+                            result.changed = true;
+                        }
                     }
                 }
             }
         }
 
-        return;
+        return result;
     }
 
     // Box selection.
@@ -84,10 +113,22 @@ pub fn update(
 
         if shift {
             if inside {
-                n.set_selected(true);
+                if !n.is_selected() {
+                    n.set_selected(true);
+                    result.changed = true;
+                    result.selected = true;
+                }
             }
         } else {
-            n.set_selected(inside);
+            if n.is_selected() != inside {
+                n.set_selected(inside);
+                result.changed = true;
+                if inside {
+                    result.selected = true;
+                }
+            }
         }
     }
+
+    result
 }

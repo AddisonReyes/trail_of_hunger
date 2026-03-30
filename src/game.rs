@@ -26,6 +26,18 @@ struct LevelTransition {
     next_level: Option<usize>,
 }
 
+#[derive(Clone, Copy, Debug)]
+enum ThemePhase {
+    Playing,
+    Gap,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ThemeCycle {
+    phase: ThemePhase,
+    remaining: f32,
+}
+
 pub struct GameManager {
     assets: Assets,
     screen: Screen,
@@ -53,6 +65,10 @@ pub struct GameManager {
     level_animals_total: usize,
 
     ui_hint: Option<UiHint>,
+
+    theme_cycle: Option<ThemeCycle>,
+
+    selection_sfx_cd: f32,
 }
 
 impl GameManager {
@@ -83,6 +99,10 @@ impl GameManager {
             level_animals_total: 0,
 
             ui_hint: None,
+
+            theme_cycle: None,
+
+            selection_sfx_cd: 0.0,
         }
     }
 
@@ -104,6 +124,9 @@ impl GameManager {
         self.last_mouse = input.mouse;
         self.tick_hint(dt);
         self.update_screen(input);
+
+        // Keep BGM timing running even while paused.
+        self.tick_game_theme(dt);
 
         if self.screen == Screen::InGame && !self.paused {
             self.update_game(input);
@@ -202,10 +225,13 @@ impl GameManager {
     }
 
     fn update_screen(&mut self, input: &InputState) {
+        let mut click_accepted = false;
+
         match self.screen {
             Screen::Menu => {
                 if input.enter_pressed {
                     self.screen = Screen::LevelSelect;
+                    click_accepted = true;
                 }
             }
             Screen::LevelSelect => {
@@ -223,6 +249,7 @@ impl GameManager {
                     if self.selected_level <= self.unlocked_cap() {
                         self.start_level(self.selected_level);
                         self.screen = Screen::InGame;
+                        click_accepted = true;
                     } else {
                         let w = screen_width();
                         let h = screen_height();
@@ -240,16 +267,20 @@ impl GameManager {
 
                 if input.escape_pressed {
                     self.screen = Screen::Menu;
+                    click_accepted = true;
                 }
             }
             Screen::InGame => {
                 if input.escape_pressed && self.level_transition.is_none() {
                     self.pause_game(!self.paused);
+                    click_accepted = true;
                 }
 
                 if self.paused && input.enter_pressed && self.level_transition.is_none() {
                     self.pause_game(false);
                     self.screen = Screen::LevelSelect;
+                    self.stop_game_theme_cycle();
+                    click_accepted = true;
                 }
             }
             Screen::GameOver => {
@@ -258,14 +289,20 @@ impl GameManager {
                     self.selected_level = lvl;
                     self.start_level(lvl);
                     self.screen = Screen::InGame;
+                    click_accepted = true;
                 }
 
                 if input.escape_pressed {
                     let lvl = (self.level.max(1) as usize).clamp(1, self.total_levels());
                     self.selected_level = lvl;
                     self.screen = Screen::Menu;
+                    click_accepted = true;
                 }
             }
+        }
+
+        if click_accepted {
+            self.assets.play_click();
         }
     }
 
@@ -278,6 +315,8 @@ impl GameManager {
             self.active_config = self.config;
             return;
         };
+
+        self.start_game_theme_cycle();
 
         self.level = level as i32;
         self.pause_game(false);
@@ -329,6 +368,8 @@ impl GameManager {
     fn update_game(&mut self, input: &InputState) {
         let dt = get_frame_time();
 
+        self.selection_sfx_cd = (self.selection_sfx_cd - dt).max(0.0);
+
         // Convert screen mouse -> world mouse (playfield space).
         // Also prevent clicks from going through the top bar.
         let mut winput = *input;
@@ -343,7 +384,7 @@ impl GameManager {
             winput.mouse.y -= bar_h;
         }
 
-        systems::selection::update(
+        let selection = systems::selection::update(
             &winput,
             &mut self.world,
             &mut self.selection_box,
@@ -358,8 +399,9 @@ impl GameManager {
             self.set_hint("Select a nomad first", self.last_mouse, 1.0);
         }
 
+        let mut command_issued = false;
         if self.level_transition.is_none() {
-            systems::commands::update(
+            command_issued = systems::commands::update(
                 &winput,
                 &mut self.world,
                 &mut self.command,
@@ -367,9 +409,27 @@ impl GameManager {
             );
         }
 
-        systems::nomads::update(dt, &mut self.world, &mut self.hunger, &self.active_config);
+        // Play a random selection line, but gate it with a cooldown.
+        if selection.changed && selection.selected && self.selection_sfx_cd <= 0.0 {
+            self.assets.play_nomad_selection();
+            self.selection_sfx_cd = 1.0;
+        }
+        if command_issued {
+            self.assets.play_click();
+        }
+
+        let eats = systems::nomads::update(dt, &mut self.world, &mut self.hunger, &self.active_config);
+        if eats > 0 {
+            self.assets.play_eating();
+        }
+
         systems::animals::update(dt, &mut self.world, &self.active_config, &mut self.blood_layer);
-        systems::spears::update(dt, &mut self.world, &self.active_config);
+
+        let spear_hits = systems::spears::update(dt, &mut self.world, &self.active_config);
+        if spear_hits > 0 {
+            self.assets.play_hit_animal();
+        }
+
         systems::commands::update_feedback(&self.world, &mut self.command);
 
         if self.level_transition.is_none() && self.world.animals.is_empty() {
@@ -390,6 +450,8 @@ impl GameManager {
             if self.hunger <= 0 {
                 self.hunger = 0;
                 self.screen = Screen::GameOver;
+                self.stop_game_theme_cycle();
+                self.assets.play_game_over();
             }
         }
     }
@@ -449,6 +511,9 @@ impl GameManager {
         // Don't allow pause overlay during transitions.
         self.pause_game(false);
 
+        self.stop_game_theme_cycle();
+        self.assets.play_win();
+
         if !self.debug {
             let current = self.level.max(1) as usize;
             let next_unlock = (current + 1).min(self.total_levels());
@@ -468,6 +533,66 @@ impl GameManager {
         });
 
         self.command.last_command = None;
+    }
+
+    fn start_game_theme_cycle(&mut self) {
+        self.assets.stop_game_theme();
+        self.theme_cycle = None;
+
+        let Some(seconds) = self.assets.bgm_game_theme_seconds else {
+            // If we can't time the track, fall back to seamless looping.
+            self.assets.play_game_theme_looped();
+            return;
+        };
+
+        let seconds = seconds.max(0.05);
+        self.assets.play_game_theme_once();
+        self.theme_cycle = Some(ThemeCycle {
+            phase: ThemePhase::Playing,
+            remaining: seconds,
+        });
+    }
+
+    fn stop_game_theme_cycle(&mut self) {
+        self.theme_cycle = None;
+        self.assets.stop_game_theme();
+    }
+
+    fn tick_game_theme(&mut self, dt: f32) {
+        if self.screen != Screen::InGame {
+            return;
+        }
+        if self.level_transition.is_some() {
+            return;
+        }
+
+        let Some(mut cycle) = self.theme_cycle else {
+            return;
+        };
+
+        cycle.remaining -= dt;
+        if cycle.remaining > 0.0 {
+            self.theme_cycle = Some(cycle);
+            return;
+        }
+
+        match cycle.phase {
+            ThemePhase::Playing => {
+                // Track ended: wait 6 seconds, then restart.
+                self.theme_cycle = Some(ThemeCycle {
+                    phase: ThemePhase::Gap,
+                    remaining: 6.0,
+                });
+            }
+            ThemePhase::Gap => {
+                let seconds = self.assets.bgm_game_theme_seconds.unwrap_or(0.0).max(0.05);
+                self.assets.play_game_theme_once();
+                self.theme_cycle = Some(ThemeCycle {
+                    phase: ThemePhase::Playing,
+                    remaining: seconds,
+                });
+            }
+        }
     }
 
     fn update_level_transition(&mut self, dt: f32) {

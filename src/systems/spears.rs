@@ -3,8 +3,10 @@ use crate::gameplay_config::GamePlayConfig;
 use crate::world::{Corpse, World};
 use macroquad::rand::gen_range;
 
-pub fn update(dt: f32, world: &mut World, tuning: &GamePlayConfig) {
+pub fn update(dt: f32, world: &mut World, tuning: &GamePlayConfig) -> u32 {
     let bounds = world.bounds;
+
+    let mut hits = 0_u32;
 
     let mut i = 0;
     while i < world.spears.len() {
@@ -29,6 +31,7 @@ pub fn update(dt: f32, world: &mut World, tuning: &GamePlayConfig) {
                     .iter()
                     .position(|a| a.get_position().distance_squared(s.pos) <= hit_r2)
                 {
+                    hits += 1;
                     let animal_id = world.animals[ai].id();
                     world.animals[ai].take_damage(1);
                     remove_spear = true;
@@ -81,4 +84,6 @@ pub fn update(dt: f32, world: &mut World, tuning: &GamePlayConfig) {
             i += 1;
         }
     }
+
+    hits
 }
