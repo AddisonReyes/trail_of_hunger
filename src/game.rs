@@ -443,7 +443,7 @@ impl GameManager {
         }
 
         self.hunger_timer += dt;
-        if self.hunger_timer >= self.config.hunger_tick_seconds {
+        if self.hunger_timer >= self.active_config.hunger_tick_seconds {
             self.hunger_timer = 0.0;
             self.hunger -= 1;
 

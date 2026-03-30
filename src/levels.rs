@@ -112,6 +112,62 @@ pub const LEVELS: &[LevelSpec] = &[
             ..NO_OVERRIDES
         },
     },
+    // Phase 2: introduce 3 nomads, scale mainly by animal count.
+    LevelSpec {
+        nomads: 3,
+        animals: 34,
+        hunger_start: 50,
+        overrides: LevelOverrides {
+            hunger_tick_seconds: Some(0.92),
+            animal_flee_radius: Some(86.0),
+            animal_flee_speed_max: Some(158.0),
+            ..NO_OVERRIDES
+        },
+    },
+    LevelSpec {
+        nomads: 3,
+        animals: 38,
+        hunger_start: 50,
+        overrides: LevelOverrides {
+            hunger_tick_seconds: Some(0.88),
+            animal_flee_radius: Some(88.0),
+            animal_flee_speed_max: Some(160.0),
+            ..NO_OVERRIDES
+        },
+    },
+    LevelSpec {
+        nomads: 3,
+        animals: 42,
+        hunger_start: 50,
+        overrides: LevelOverrides {
+            hunger_tick_seconds: Some(0.84),
+            animal_flee_radius: Some(90.0),
+            animal_flee_speed_max: Some(162.0),
+            ..NO_OVERRIDES
+        },
+    },
+    LevelSpec {
+        nomads: 3,
+        animals: 46,
+        hunger_start: 50,
+        overrides: LevelOverrides {
+            hunger_tick_seconds: Some(0.80),
+            animal_flee_radius: Some(92.0),
+            animal_flee_speed_max: Some(164.0),
+            ..NO_OVERRIDES
+        },
+    },
+    LevelSpec {
+        nomads: 3,
+        animals: 50,
+        hunger_start: 50,
+        overrides: LevelOverrides {
+            hunger_tick_seconds: Some(0.76),
+            animal_flee_radius: Some(94.0),
+            animal_flee_speed_max: Some(166.0),
+            ..NO_OVERRIDES
+        },
+    },
 ];
 
 pub fn count() -> usize {
